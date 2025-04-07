@@ -1,0 +1,50 @@
+{
+  "image_processing": {
+    "input_image": "mural.jpg",
+    "wall_width": 2000,
+    "wall_height": 1500,
+    "resolution_mm": 5.0,
+    "output_instructions": "painting_instructions.json",
+    "quantization_method": "kmeans",
+    "dithering": false,
+    "available_colors": [
+      [0, 0, 0],
+      [255, 0, 0],
+      [0, 0, 255],
+      [0, 255, 0],
+      [255, 255, 0],
+      [255, 0, 255],
+      [0, 255, 255],
+      [255, 255, 255]
+    ],
+    "quantization_options": {
+      "euclidean": {
+        "description": "Basic color matching using Euclidean distance"
+      },
+      "kmeans": {
+        "description": "Enhanced color mapping using K-means clustering",
+        "max_iterations": 20,
+        "sample_size": 100000
+      },
+      "color_palette": {
+        "description": "Optimized color mapping based on image's dominant colors",
+        "histogram_bins": 8,
+        "peak_threshold": 0.001
+      }
+    }
+  },
+  "visualization": {
+    "instructions_file": "painting_instructions.json",
+    "output_video": "painting_simulation.mp4",
+    "fps": 15
+  },
+  "hardware": {
+    "left_stepper_port": "COM3",
+    "right_stepper_port": "COM4",
+    "spray_servo_port": "COM5",
+    "wall_mount_height": 2000,
+    "wall_mount_width": 3000,
+    "steps_per_mm": 10,
+    "max_speed": 1000
+  }
+}
