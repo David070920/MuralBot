@@ -21,9 +21,10 @@ from scipy.spatial import Delaunay
 from advanced_algorithms import apply_dithering, generate_fill_pattern, optimize_path_sequence
 
 class MuralInstructionGenerator:
-    def __init__(self, wall_width, wall_height, available_colors=None, resolution_mm=5, 
-                 quantization_method="euclidean", dithering="none", dithering_strength=1.0, max_colors=30, 
-                 robot_capacity=6, color_selection="auto", fill_pattern="zigzag", fill_angle=0, fast_mode=True):
+    def __init__(self, wall_width, wall_height, available_colors=None, resolution_mm=5,
+                 quantization_method="euclidean", dithering="none", dithering_strength=1.0, max_colors=30,
+                 robot_capacity=6, color_selection="auto", fill_pattern="zigzag", fill_angle=0, fast_mode=True,
+                 segmentation_method="connected_components"):
         """
         Initialize the mural painting instruction generator.
         
@@ -32,7 +33,7 @@ class MuralInstructionGenerator:
             wall_height: Height of the wall/canvas in mm
             available_colors: List of (R,G,B) tuples representing available spray colors
             resolution_mm: Resolution in mm for path planning
-            quantization_method: Method for color quantization ("euclidean", "kmeans", or "color_palette")
+            quantization_method: Method for color quantization ("euclidean", "kmeans", "adaptive_kmeans", or "color_palette")
             dithering: Dithering method ("none", "floyd-steinberg", "jarvis", or "stucki")
             dithering_strength: Strength of dithering effect (0.0-1.0)
             max_colors: Maximum number of colors to use in the mural
@@ -41,6 +42,7 @@ class MuralInstructionGenerator:
             fill_pattern: Pattern for filling regions ("zigzag", "concentric", "spiral", or "dots")
             fill_angle: Angle for directional patterns in degrees
             fast_mode: Use fast approximate dithering (default True)
+            segmentation_method: Method for segmenting color regions ("connected_components" or "slic")
         """
         self.wall_width = wall_width
         self.wall_height = wall_height
@@ -57,6 +59,7 @@ class MuralInstructionGenerator:
         self.fill_pattern = fill_pattern  # Fill pattern type
         self.fill_angle = fill_angle  # Angle for directional fill patterns
         self.fast_mode = fast_mode  # Use fast approximate dithering
+        self.segmentation_method = segmentation_method  # Segmentation method
         
         # Load the MTN94 color database by default
         self.available_colors = self._load_mtn94_colors() if available_colors is None else available_colors
@@ -143,6 +146,8 @@ class MuralInstructionGenerator:
             quantized_image, color_indices = self._quantize_euclidean(image_rgb)
         elif self.quantization_method == "kmeans":
             quantized_image, color_indices = self._quantize_kmeans(image_rgb)
+        elif self.quantization_method == "adaptive_kmeans":
+            quantized_image, color_indices = self._quantize_adaptive_kmeans(image_rgb)
         elif self.quantization_method == "color_palette":
             quantized_image, color_indices = self._quantize_color_palette(image_rgb)
         else:
@@ -475,6 +480,9 @@ class MuralInstructionGenerator:
 
     def find_color_regions(self, color_indices):
         """Find connected regions for each color."""
+        if hasattr(self, 'segmentation_method') and self.segmentation_method == "slic":
+            return self._segment_slic(color_indices)
+        
         color_regions = {}
         num_colors = len(self.available_colors)
         
@@ -1038,6 +1046,88 @@ class MuralInstructionGenerator:
         # Also save the quantized image for reference
         preview_path = os.path.join(painting_folder, "quantized_preview.jpg")
         cv2.imwrite(preview_path, quantized_image)
+    def _quantize_adaptive_kmeans(self, image_rgb):
+        """Adaptive K-means quantization with automatic cluster count selection."""
+        from sklearn.cluster import KMeans
+        from skimage.color import rgb2lab
+        import numpy as np
+
+        pixels_rgb = image_rgb.reshape(-1, 3).astype(np.float32) / 255.0
+        pixels_lab = rgb2lab(pixels_rgb.reshape(-1,1,3)).reshape(-1,3)
+
+        best_k = 4
+        best_inertia = None
+        max_k = min(self.max_colors, 30)
+        inertias = []
+
+        # Try different cluster counts
+        for k in range(4, max_k+1):
+            kmeans = KMeans(n_clusters=k, n_init=3, max_iter=100, random_state=42)
+            kmeans.fit(pixels_lab)
+            inertias.append(kmeans.inertia_)
+            if best_inertia is None or kmeans.inertia_ < best_inertia:
+                best_inertia = kmeans.inertia_
+                best_k = k
+
+            # Early stopping if inertia reduction is small
+            if len(inertias) > 1 and (inertias[-2] - inertias[-1]) / inertias[-2] < 0.05:
+                break
+
+        # Final KMeans with best_k
+        kmeans = KMeans(n_clusters=best_k, n_init=5, max_iter=200, random_state=42)
+        kmeans.fit(pixels_lab)
+        centers_lab = kmeans.cluster_centers_
+
+        # Convert available colors to LAB
+        available_rgb = np.array(self.available_colors).astype(np.float32) / 255.0
+        available_lab = rgb2lab(available_rgb.reshape(-1,1,3)).reshape(-1,3)
+
+        # Map cluster centers to closest available paint color
+        assignments = []
+        for center in centers_lab:
+            distances = np.linalg.norm(available_lab - center, axis=1)
+            closest_idx = np.argmin(distances)
+            assignments.append(closest_idx)
+
+        # Assign pixels
+        labels = kmeans.predict(pixels_lab)
+        color_indices = np.array([assignments[label] for label in labels])
+
+        quantized_rgb = np.array([self.available_colors[idx] for idx in color_indices])
+        quantized_image = quantized_rgb.reshape(image_rgb.shape)
+        color_indices = color_indices.reshape(image_rgb.shape[:2])
+
+        return quantized_image, color_indices
+
+    def _segment_slic(self, color_indices):
+        """Segment image using SLIC superpixels and group by dominant color."""
+        from skimage.segmentation import slic
+        from skimage.color import label2rgb
+        import numpy as np
+
+        # Reconstruct quantized RGB image from color indices
+        h, w = color_indices.shape
+        quantized_rgb = np.zeros((h, w, 3), dtype=np.uint8)
+        for idx, color in enumerate(self.available_colors):
+            mask = (color_indices == idx)
+            quantized_rgb[mask] = color
+
+        # Run SLIC
+        segments = slic(quantized_rgb, n_segments=500, compactness=10, start_label=1, convert2lab=True)
+
+        # Group superpixels by dominant color
+        color_regions = {i: [] for i in range(len(self.available_colors))}
+        for seg_val in np.unique(segments):
+            mask = (segments == seg_val)
+            if np.sum(mask) < 5:
+                continue
+            # Find dominant color index in this superpixel
+            dominant_color = np.bincount(color_indices[mask].flatten()).argmax()
+            color_mask = np.zeros_like(mask, dtype=np.uint8)
+            color_mask[mask] = 1
+            color_regions[dominant_color].append((color_mask, 0, 0, h, w))
+
+        return color_regions
         print(f"Preview image saved as '{preview_path}'")
         
         # Save paint usage report to a text file
