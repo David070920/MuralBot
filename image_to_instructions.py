@@ -18,10 +18,12 @@ import skimage.morphology as morphology
 from skimage.graph import route_through_array
 from scipy.spatial import Delaunay
 
+from advanced_algorithms import apply_dithering, generate_fill_pattern, optimize_path_sequence
+
 class MuralInstructionGenerator:
     def __init__(self, wall_width, wall_height, available_colors=None, resolution_mm=5, 
-                 quantization_method="euclidean", dithering=False, max_colors=30, 
-                 robot_capacity=6, color_selection="auto"):
+                 quantization_method="euclidean", dithering="none", dithering_strength=1.0, max_colors=30, 
+                 robot_capacity=6, color_selection="auto", fill_pattern="zigzag", fill_angle=0):
         """
         Initialize the mural painting instruction generator.
         
@@ -31,22 +33,28 @@ class MuralInstructionGenerator:
             available_colors: List of (R,G,B) tuples representing available spray colors
             resolution_mm: Resolution in mm for path planning
             quantization_method: Method for color quantization ("euclidean", "kmeans", or "color_palette")
-            dithering: Whether to apply Floyd-Steinberg dithering to improve color appearance
+            dithering: Dithering method ("none", "floyd-steinberg", "jarvis", or "stucki")
+            dithering_strength: Strength of dithering effect (0.0-1.0)
             max_colors: Maximum number of colors to use in the mural
             robot_capacity: Number of colors the robot can hold simultaneously
             color_selection: Method for color selection ("auto" or "manual")
+            fill_pattern: Pattern for filling regions ("zigzag", "concentric", "spiral", or "dots")
+            fill_angle: Angle for directional patterns in degrees
         """
         self.wall_width = wall_width
         self.wall_height = wall_height
         self.resolution_mm = resolution_mm
         self.quantization_method = quantization_method
         self.dithering = dithering
+        self.dithering_strength = dithering_strength
         self.paint_usage = None  # Will store paint usage estimates per color
         self.max_colors = max_colors  # Maximum colors to use in the mural
         self.robot_capacity = robot_capacity  # Number of colors robot can hold at once
         self.color_selection = color_selection  # Color selection method
         self.color_change_position = [0, 2000]  # Position to change colors (bottom left)
         self.optimized_color_groups = []  # Will store grouped colors for robot capacity
+        self.fill_pattern = fill_pattern  # Fill pattern type
+        self.fill_angle = fill_angle  # Angle for directional fill patterns
         
         # Load the MTN94 color database by default
         self.available_colors = self._load_mtn94_colors() if available_colors is None else available_colors
@@ -140,9 +148,15 @@ class MuralInstructionGenerator:
             quantized_image, color_indices = self._quantize_euclidean(image_rgb)
         
         # Apply dithering if enabled
-        if self.dithering:
-            print("  Applying Floyd-Steinberg dithering...")
-            quantized_image, color_indices = self._apply_dithering(image_rgb, quantized_image, color_indices)
+        if self.dithering != "none":
+            print(f"  Applying {self.dithering} dithering with strength {self.dithering_strength}...")
+            quantized_image, color_indices = apply_dithering(
+                image_rgb, 
+                self.available_colors, 
+                color_indices,
+                method=self.dithering,
+                strength=self.dithering_strength
+            )
             
         # Calculate estimated paint usage
         self._calculate_paint_usage(color_indices)
@@ -330,51 +344,69 @@ class MuralInstructionGenerator:
         
         return quantized_image, color_indices
     
-    def _apply_dithering(self, original_image, quantized_image, color_indices):
-        """Apply Floyd-Steinberg dithering to improve visual appearance."""
-        # Make a copy of the original image in float format for error diffusion
-        h, w = original_image.shape[:2]
-        dither_image = original_image.astype(np.float32)
-        dithered_indices = color_indices.copy()
+    def generate_paths(self, color_regions):
+        """Generate painting paths for each color region."""
+        all_paths = {}
+        total_regions = sum(len(regions) for regions in color_regions.values())
         
-        # Available colors as numpy array
-        colors_array = np.array(self.available_colors)
-        
-        # Process the image pixel by pixel
-        with tqdm(total=h, desc="Applying dithering") as pbar:
-            for y in range(h):
-                for x in range(w):
-                    # Get old pixel value
-                    old_pixel = dither_image[y, x].copy()
-                    
-                    # Find nearest color
-                    distances = np.sqrt(np.sum((old_pixel - colors_array)**2, axis=1))
-                    nearest_idx = np.argmin(distances)
-                    nearest_color = colors_array[nearest_idx]
-                    
-                    # Update image with nearest color
-                    dithered_indices[y, x] = nearest_idx
-                    
-                    # Compute error
-                    error = old_pixel - nearest_color
-                    
-                    # Distribute error to neighboring pixels (Floyd-Steinberg)
-                    if x + 1 < w:
-                        dither_image[y, x + 1] += error * 7 / 16
-                    if y + 1 < h:
-                        if x > 0:
-                            dither_image[y + 1, x - 1] += error * 3 / 16
-                        dither_image[y + 1, x] += error * 5 / 16
-                        if x + 1 < w:
-                            dither_image[y + 1, x + 1] += error * 1 / 16
+        # Create progress bar for path generation
+        with tqdm(total=total_regions, desc="Generating paths") as pbar:
+            for color_idx, regions in color_regions.items():
+                color_paths = []
                 
-                pbar.update(1)
+                for region_data in regions:
+                    # Unpack region data (mask, y_start, x_start, y_end, x_end)
+                    region_mask, y_start, x_start, y_end, x_end = region_data
+                    
+                    # Find contours in this region
+                    contours, _ = cv2.findContours(
+                        region_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+                    )
+                    
+                    for contour in contours:
+                        # Check if contour is large enough to paint
+                        area = cv2.contourArea(contour)
+                        if area < 10:  # Skip tiny regions
+                            continue
+                        
+                        # Adjust contour coordinates to account for region position
+                        adjusted_contour = contour.copy()
+                        adjusted_contour[:, :, 0] += x_start  # Add x offset
+                        adjusted_contour[:, :, 1] += y_start  # Add y offset
+                        
+                        # Simplify contour to reduce number of points
+                        epsilon = 0.01 * cv2.arcLength(adjusted_contour, True)
+                        approx = cv2.approxPolyDP(adjusted_contour, epsilon, True)
+                        
+                        # Get contour points
+                        points = [tuple(map(int, point[0])) for point in approx]
+                        
+                        # If contour is closed, make sure the first and last points connect
+                        if len(points) > 2:
+                            points.append(points[0])
+                            
+                        # For larger areas, add fill pattern
+                        if area > 500:
+                            fill_paths = generate_fill_pattern(
+                                adjusted_contour, 
+                                self.resolution_mm * 2,  # Spacing between fill lines
+                                pattern_type=self.fill_pattern,
+                                angle=self.fill_angle
+                            )
+                            color_paths.extend(fill_paths)
+                        
+                        color_paths.append(points)
+                    
+                    pbar.update(1)
+                
+                if color_paths:
+                    all_paths[color_idx] = color_paths
         
-        # Convert dithered image back to uint8
-        dithered_image = np.array([self.available_colors[idx] for idx in dithered_indices.flatten()])
-        dithered_image = dithered_image.reshape(original_image.shape)
+        # Optimize path sequence to minimize travel distance
+        print("Optimizing path sequence to reduce travel distance...")
+        all_paths = optimize_path_sequence(all_paths, start_point=(0, 0))
         
-        return dithered_image, dithered_indices
+        return all_paths
 
     def _calculate_paint_usage(self, color_indices):
         """Calculate estimated paint usage for each color."""
@@ -492,99 +524,6 @@ class MuralInstructionGenerator:
                 pbar.update(1)
             
         return color_regions
-    
-    def generate_paths(self, color_regions):
-        """Generate painting paths for each color region."""
-        all_paths = {}
-        total_regions = sum(len(regions) for regions in color_regions.values())
-        
-        # Create progress bar for path generation
-        with tqdm(total=total_regions, desc="Generating paths") as pbar:
-            for color_idx, regions in color_regions.items():
-                color_paths = []
-                
-                for region_data in regions:
-                    # Unpack region data (mask, y_start, x_start, y_end, x_end)
-                    region_mask, y_start, x_start, y_end, x_end = region_data
-                    
-                    # Find contours in this region
-                    contours, _ = cv2.findContours(
-                        region_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                    )
-                    
-                    for contour in contours:
-                        # Check if contour is large enough to paint
-                        area = cv2.contourArea(contour)
-                        if area < 10:  # Skip tiny regions
-                            continue
-                            
-                        # Adjust contour coordinates to account for region position
-                        adjusted_contour = contour.copy()
-                        adjusted_contour[:, :, 0] += x_start  # Add x offset
-                        adjusted_contour[:, :, 1] += y_start  # Add y offset
-                        
-                        # Simplify contour to reduce number of points
-                        epsilon = 0.01 * cv2.arcLength(adjusted_contour, True)
-                        approx = cv2.approxPolyDP(adjusted_contour, epsilon, True)
-                        
-                        # Get contour points
-                        points = [tuple(map(int, point[0])) for point in approx]
-                        
-                        # If contour is closed, make sure the first and last points connect
-                        if len(points) > 2:
-                            points.append(points[0])
-                            
-                        # For larger areas, add fill pattern
-                        if area > 500:
-                            fill_paths = self.generate_fill_pattern(adjusted_contour, self.resolution_mm)
-                            color_paths.extend(fill_paths)
-                        
-                        color_paths.append(points)
-                    
-                    pbar.update(1)
-                
-                if color_paths:
-                    all_paths[color_idx] = color_paths
-                    
-            return all_paths
-    
-    def generate_fill_pattern(self, contour, spacing):
-        """Generate a fill pattern inside a contour."""
-        # Get contour boundaries
-        x, y, w, h = cv2.boundingRect(contour)
-        
-        # Create a mask for the contour
-        mask = np.zeros((y + h + 10, x + w + 10), dtype=np.uint8)
-        cv2.drawContours(mask, [contour], 0, 255, -1, offset=(5, 5))
-        
-        # Generate horizontal lines
-        fill_paths = []
-        for row in range(y + int(spacing / 2), y + h, int(spacing)):
-            line_points = []
-            inside = False
-            start_point = None
-            
-            for col in range(x, x + w + 1):
-                # Check if point is inside contour
-                is_inside = mask[row, col] > 0
-                
-                if is_inside and not inside:
-                    # Entering contour
-                    inside = True
-                    start_point = (col, row)
-                elif not is_inside and inside:
-                    # Exiting contour
-                    inside = False
-                    if start_point:
-                        line_points = [start_point, (col - 1, row)]
-                        fill_paths.append(line_points)
-            
-            # Handle case where line ends while still inside contour
-            if inside and start_point:
-                line_points = [start_point, (x + w, row)]
-                fill_paths.append(line_points)
-        
-        return fill_paths
     
     def optimize_paths(self, all_paths):
         """Optimize paths to minimize travel distance."""
@@ -1118,13 +1057,17 @@ if __name__ == "__main__":
     parser.add_argument('--resolution', '-r', type=float, help='Painting resolution in mm (overrides config file)')
     parser.add_argument('--quantization', '-q', choices=['euclidean', 'kmeans', 'color_palette'],
                        help='Color quantization method (overrides config file)')
-    parser.add_argument('--dithering', '-d', action='store_true',
-                       help='Enable dithering for better visual appearance')
+    parser.add_argument('--dithering', '-d', choices=['none', 'floyd-steinberg', 'jarvis', 'stucki'],
+                       help='Dithering method (overrides config file)')
+    parser.add_argument('--dithering_strength', '-ds', type=float, help='Strength of dithering effect (overrides config file)')
     parser.add_argument('--max_colors', '-mc', type=int, help='Maximum number of colors to use (overrides config file)')
     parser.add_argument('--robot_capacity', '-rc', type=int, 
                        help='Number of colors the robot can hold simultaneously (overrides config file)')
     parser.add_argument('--color_selection', '-cs', choices=['auto', 'manual'],
                        help='Color selection method (overrides config file)')
+    parser.add_argument('--fill_pattern', '-fp', choices=['zigzag', 'concentric', 'spiral', 'dots'],
+                       help='Fill pattern for regions (overrides config file)')
+    parser.add_argument('--fill_angle', '-fa', type=float, help='Angle for directional fill patterns (overrides config file)')
     
     args = parser.parse_args()
     
@@ -1146,10 +1089,13 @@ if __name__ == "__main__":
     wall_height = args.height or img_config.get('wall_height', 1500)
     resolution_mm = args.resolution or img_config.get('resolution_mm', 5.0)
     quantization_method = args.quantization or img_config.get('quantization_method', 'euclidean')
-    dithering = args.dithering or img_config.get('dithering', False)
+    dithering = args.dithering or img_config.get('dithering', 'none')
+    dithering_strength = args.dithering_strength or img_config.get('dithering_strength', 1.0)
     max_colors = args.max_colors or img_config.get('max_colors', 30)
     robot_capacity = args.robot_capacity or img_config.get('robot_capacity', 6)
     color_selection = args.color_selection or img_config.get('color_selection', 'auto')
+    fill_pattern = args.fill_pattern or img_config.get('fill_pattern', 'zigzag')
+    fill_angle = args.fill_angle or img_config.get('fill_angle', 0)
     
     # Get color change position from hardware config
     color_change_position = hardware_config.get('color_change_position', [0, wall_height])
@@ -1167,9 +1113,12 @@ if __name__ == "__main__":
         resolution_mm=resolution_mm,
         quantization_method=quantization_method,
         dithering=dithering,
+        dithering_strength=dithering_strength,
         max_colors=max_colors,
         robot_capacity=robot_capacity,
-        color_selection=color_selection
+        color_selection=color_selection,
+        fill_pattern=fill_pattern,
+        fill_angle=fill_angle
     )
     
     # Set the color change position

@@ -26,26 +26,33 @@ class ConsoleApp:
         # Load configuration
         self.config_manager = ConfigManager(config_path)
         
+        # Use the get_config method instead of accessing attributes directly
+        config = self.config_manager.get_config()
+        img_settings = config.get("image_processing", {})
+        
         # Get settings
-        img_settings = self.config_manager.get_image_processing_settings()
-        self.painting_folder = self.config_manager.get_painting_folder()
+        self.painting_folder = img_settings.get("painting_folder", "paintings")
+        
+        # Create the painting folder if it doesn't exist
+        if not os.path.exists(self.painting_folder):
+            os.makedirs(self.painting_folder)
         
         # Extract settings
-        self.input_image = img_settings["input_image"]
-        self.wall_width = img_settings["wall_width"]
-        self.wall_height = img_settings["wall_height"]
-        self.resolution_mm = img_settings["resolution_mm"]
-        self.output_instructions = img_settings["output_instructions"]
-        self.quantization_method = img_settings["quantization_method"]
-        self.dithering = img_settings["dithering"]
-        self.max_colors = img_settings["max_colors"]
-        self.robot_capacity = img_settings["robot_capacity"]
-        self.color_selection = img_settings["color_selection"]
-        self.available_colors = img_settings["available_colors"]
+        self.input_image = img_settings.get("input_image", "default.jpg")
+        self.wall_width = img_settings.get("wall_width", 2000)
+        self.wall_height = img_settings.get("wall_height", 1500)
+        self.resolution_mm = img_settings.get("resolution_mm", 5)
+        self.output_instructions = img_settings.get("output_instructions", "instructions.json")
+        self.quantization_method = img_settings.get("quantization_method", "kmeans")
+        self.dithering = img_settings.get("dithering", "none")
+        self.max_colors = img_settings.get("max_colors", 30)
+        self.robot_capacity = img_settings.get("robot_capacity", 6)
+        self.color_selection = img_settings.get("color_selection", "dominant_kmeans")
+        self.available_colors = img_settings.get("available_colors", [])
         
         # Get visualization settings
-        vis_settings = self.config_manager.get_visualization_settings()
-        self.output_video = vis_settings["output_video"]
+        vis_settings = config.get("visualization", {})
+        self.output_video = vis_settings.get("output_video", "animation.mp4")
         
         # Create components
         self.instruction_generator = MuralInstructionGenerator(
@@ -61,7 +68,7 @@ class ConsoleApp:
         )
         
         # Set any additional hardware settings
-        hardware_settings = self.config_manager.get_hardware_settings()
+        hardware_settings = config.get("hardware", {})
         if 'color_change_position' in hardware_settings:
             self.instruction_generator.color_change_position = hardware_settings['color_change_position']
         
@@ -184,8 +191,54 @@ class ConsoleApp:
             else:
                 print("Failed to connect to robot. Make sure hardware is connected.")
     
-    def run_batch(self, image_path, output_path=None, visualize=False, animate=False):
-        """Run in batch mode with specified parameters."""
+    def run_batch(self, image_path, output_path=None, visualize=False, animate=False, 
+                  color_strategy='dominant_kmeans', max_colors=None, dithering="none",
+                  dithering_strength=1.0, fill_pattern="zigzag"):
+        """Run MuralBot in batch mode with specified parameters."""
+        # Use the get_config method instead of accessing attributes directly
+        config = self.config_manager.get_config()
+        img_config = config.get("image_processing", {})
+        hardware_config = config.get("hardware", {})
+        
+        # Get resolution from config or use default
+        resolution_mm = img_config.get("resolution_mm", 5)
+        
+        # Get wall dimensions from config
+        wall_width = hardware_config.get("wall_width", 2000)  # Default 2m width
+        wall_height = hardware_config.get("wall_height", 1500)  # Default 1.5m height
+        
+        # Override with command line args if provided
+        if max_colors is None:
+            max_colors = img_config.get("max_colors", 30)
+            
+        # Determine quantization method based on color strategy
+        quantization_method = "kmeans"  # Default
+        if color_strategy == "perceptual_distribution":
+            quantization_method = "color_palette"
+        elif color_strategy == "region_based":
+            quantization_method = "euclidean"
+            
+        # Set fill angle based on pattern (can be randomized for artistic effect)
+        fill_angle = 0
+        if fill_pattern == "zigzag":
+            fill_angle = 45  # 45-degree angle looks better for zigzag
+            
+        # Get color change position from hardware config
+        color_change_position = hardware_config.get("color_change_position", [0, 0])
+        
+        # Create instruction generator
+        generator = MuralInstructionGenerator(
+            wall_width=wall_width,
+            wall_height=wall_height,
+            resolution_mm=resolution_mm,
+            quantization_method=quantization_method,
+            dithering=dithering,
+            dithering_strength=dithering_strength,            max_colors=max_colors,
+            robot_capacity=hardware_config.get("robot_capacity", 6),
+            fill_pattern=fill_pattern,
+            fill_angle=fill_angle
+        )
+        
         if not output_path:
             output_path = os.path.join(self.painting_folder, self.output_instructions)
         elif not os.path.isabs(output_path):
@@ -196,7 +249,7 @@ class ConsoleApp:
         
         # Process image
         print(f"Processing image: {image_path}")
-        instructions, quantized_image = self.instruction_generator.process_image(
+        instructions, quantized_image = generator.process_image(
             self.input_image, output_path)
         
         print(f"Instructions saved to {output_path}")

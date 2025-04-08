@@ -11,11 +11,112 @@ import json
 import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+import cv2
 
 from config_manager import ConfigManager
 from image_to_instructions import MuralInstructionGenerator
 from robot_controller import MuralRobotController
 from instruction_visualizer import MuralVisualizer
+
+class AdvancedSettingsDialog:
+    """Advanced settings dialog for configuring painting algorithms."""
+    
+    def __init__(self, master, settings):
+        self.window = tk.Toplevel(master)
+        self.window.title("Advanced Painting Settings")
+        self.window.geometry("500x450")
+        self.window.resizable(False, False)
+        
+        self.settings = settings
+        self.result = None
+        
+        # Create main frame
+        main_frame = ttk.Frame(self.window, padding=10)
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Dithering settings
+        ttk.Label(main_frame, text="Dithering Settings", font=("", 12, "bold")).grid(
+            column=0, row=0, columnspan=2, sticky=tk.W, pady=(0, 10))
+        
+        ttk.Label(main_frame, text="Dithering Algorithm:").grid(
+            column=0, row=1, sticky=tk.W, padx=5, pady=5)
+        
+        self.dithering_var = tk.StringVar(value=settings.get('dithering', 'none'))
+        dithering_combo = ttk.Combobox(main_frame, textvariable=self.dithering_var, 
+                                      values=['none', 'floyd-steinberg', 'jarvis', 'stucki'])
+        dithering_combo.grid(column=1, row=1, sticky=tk.W, padx=5, pady=5)
+        dithering_combo.state(['readonly'])
+        
+        ttk.Label(main_frame, text="Dithering Strength:").grid(
+            column=0, row=2, sticky=tk.W, padx=5, pady=5)
+        
+        self.strength_var = tk.DoubleVar(value=settings.get('dithering_strength', 1.0))
+        strength_scale = ttk.Scale(main_frame, from_=0.0, to=1.0, 
+                                  variable=self.strength_var, orient=tk.HORIZONTAL,
+                                  length=200)
+        strength_scale.grid(column=1, row=2, sticky=tk.W, padx=5, pady=5)
+        
+        strength_label = ttk.Label(main_frame, textvariable=self.strength_var)
+        strength_label.grid(column=2, row=2, sticky=tk.W)
+        
+        # Fill pattern settings
+        ttk.Label(main_frame, text="Fill Pattern Settings", font=("", 12, "bold")).grid(
+            column=0, row=3, columnspan=2, sticky=tk.W, pady=(20, 10))
+        
+        ttk.Label(main_frame, text="Fill Pattern:").grid(
+            column=0, row=4, sticky=tk.W, padx=5, pady=5)
+        
+        self.pattern_var = tk.StringVar(value=settings.get('fill_pattern', 'zigzag'))
+        pattern_combo = ttk.Combobox(main_frame, textvariable=self.pattern_var,
+                                    values=['zigzag', 'concentric', 'spiral', 'dots'])
+        pattern_combo.grid(column=1, row=4, sticky=tk.W, padx=5, pady=5)
+        pattern_combo.state(['readonly'])
+        
+        ttk.Label(main_frame, text="Fill Angle:").grid(
+            column=0, row=5, sticky=tk.W, padx=5, pady=5)
+        
+        self.angle_var = tk.IntVar(value=settings.get('fill_angle', 0))
+        angle_scale = ttk.Scale(main_frame, from_=0, to=180, 
+                               variable=self.angle_var, orient=tk.HORIZONTAL,
+                               length=200)
+        angle_scale.grid(column=1, row=5, sticky=tk.W, padx=5, pady=5)
+        
+        angle_label = ttk.Label(main_frame, textvariable=self.angle_var)
+        angle_label.grid(column=2, row=5, sticky=tk.W)
+        
+        # Path optimization settings
+        ttk.Label(main_frame, text="Path Optimization", font=("", 12, "bold")).grid(
+            column=0, row=6, columnspan=2, sticky=tk.W, pady=(20, 10))
+        
+        self.optimize_var = tk.BooleanVar(value=settings.get('optimize_paths', True))
+        optimize_check = ttk.Checkbutton(main_frame, text="Optimize paths to minimize travel distance",
+                                        variable=self.optimize_var)
+        optimize_check.grid(column=0, row=7, columnspan=2, sticky=tk.W, padx=5, pady=5)
+        
+        # Buttons frame
+        buttons_frame = ttk.Frame(main_frame)
+        buttons_frame.grid(column=0, row=8, columnspan=3, pady=(20, 0))
+        
+        ttk.Button(buttons_frame, text="OK", command=self.on_ok).pack(side=tk.LEFT, padx=5)
+        ttk.Button(buttons_frame, text="Cancel", command=self.on_cancel).pack(side=tk.LEFT, padx=5)
+        
+        # Make dialog modal
+        self.window.transient(master)
+        self.window.grab_set()
+        master.wait_window(self.window)
+        
+    def on_ok(self):
+        self.result = {
+            'dithering': self.dithering_var.get(),
+            'dithering_strength': self.strength_var.get(),
+            'fill_pattern': self.pattern_var.get(),
+            'fill_angle': self.angle_var.get(),
+            'optimize_paths': self.optimize_var.get()
+        }
+        self.window.destroy()
+        
+    def on_cancel(self):
+        self.window.destroy()
 
 class GUIApp:
     """
@@ -23,32 +124,37 @@ class GUIApp:
     Provides a simple tab-based interface for the full process.
     """
     
-    def __init__(self, config_path="config.json"):
-        """Initialize the application with the given config file."""
-        # Load configuration
+    def __init__(self, config_path='config.json'):
+        """Initialize the GUI application."""
         self.config_manager = ConfigManager(config_path)
-        self.config_path = config_path
         
-        # Get settings
-        img_settings = self.config_manager.get_image_processing_settings()
-        self.painting_folder = self.config_manager.get_painting_folder()
+        # Use the get_config method instead of accessing attributes directly
+        config = self.config_manager.get_config()
+        img_settings = config.get('image_processing', {})
+          # Get settings
+        self.painting_folder = img_settings.get('painting_folder', 'painting')
+        
+        # Create the painting folder if it doesn't exist
+        if not os.path.exists(self.painting_folder):
+            os.makedirs(self.painting_folder)
         
         # Extract settings
-        self.input_image = img_settings["input_image"]
-        self.wall_width = img_settings["wall_width"]
-        self.wall_height = img_settings["wall_height"]
-        self.resolution_mm = img_settings["resolution_mm"]
-        self.output_instructions = img_settings["output_instructions"]
-        self.quantization_method = img_settings["quantization_method"]
-        self.dithering = img_settings["dithering"]
-        self.max_colors = img_settings["max_colors"]
-        self.robot_capacity = img_settings["robot_capacity"]
-        self.color_selection = img_settings["color_selection"]
-        self.available_colors = img_settings["available_colors"]
+        self.input_image = img_settings.get("input_image", "")
+        self.wall_width = img_settings.get("wall_width", 0)
+        self.wall_height = img_settings.get("wall_height", 0)
+        self.resolution_mm = img_settings.get("resolution_mm", 0)
+        self.output_instructions = img_settings.get("output_instructions", "")
+        self.quantization_method = img_settings.get("quantization_method", "")
+        # Convert dithering setting to boolean - if it's not "none", then it's enabled
+        self.dithering = img_settings.get("dithering", "none") != "none"
+        self.max_colors = img_settings.get("max_colors", 0)
+        self.robot_capacity = img_settings.get("robot_capacity", 0)
+        self.color_selection = img_settings.get("color_selection", "")
+        self.available_colors = img_settings.get("available_colors", [])
         
         # Get visualization settings
-        vis_settings = self.config_manager.get_visualization_settings()
-        self.output_video = vis_settings["output_video"]
+        vis_settings = config.get('visualization', {})
+        self.output_video = vis_settings.get("output_video", "")
         
         # Create components
         self.instruction_generator = MuralInstructionGenerator(
@@ -62,14 +168,22 @@ class GUIApp:
             robot_capacity=self.robot_capacity,
             color_selection=self.color_selection
         )
-        
-        # Set any additional hardware settings
-        hardware_settings = self.config_manager.get_hardware_settings()
+          # Set any additional hardware settings
+        hardware_settings = config.get('hardware', {})
         if 'color_change_position' in hardware_settings:
             self.instruction_generator.color_change_position = hardware_settings['color_change_position']
         
         self.robot_controller = MuralRobotController(config_path)
         self.visualizer = MuralVisualizer(config_path)
+        
+        # Add advanced settings - initialize from config
+        self.advanced_settings = {
+            'dithering': img_settings.get('dithering', 'none'),
+            'dithering_strength': 1.0,
+            'fill_pattern': img_settings.get('fill_pattern', 'zigzag'),
+            'fill_angle': img_settings.get('fill_angle', 45),
+            'optimize_paths': True
+        }
         
     def run(self):
         """Run the GUI application."""
@@ -113,7 +227,32 @@ class GUIApp:
         status_label = ttk.Label(status_frame, textvariable=self.status_text, anchor="w")
         status_label.pack(side="left", fill="x", expand=True)
         
+        # Create menu
+        self.create_menu()
+        
         self.root.mainloop()
+        
+    def create_menu(self):
+        """Create the menu bar."""
+        menu_bar = tk.Menu(self.root)
+        self.root.config(menu=menu_bar)
+        
+        # File menu
+        file_menu = tk.Menu(menu_bar, tearoff=0)
+        file_menu.add_command(label="Exit", command=self.root.quit)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+        
+        # Add advanced menu
+        advanced_menu = tk.Menu(menu_bar, tearoff=0)
+        advanced_menu.add_command(label="Painting Settings...", command=self.open_advanced_settings)
+        menu_bar.add_cascade(label="Advanced", menu=advanced_menu)
+        
+    def open_advanced_settings(self):
+        """Open dialog for advanced painting settings."""
+        dialog = AdvancedSettingsDialog(self.root, self.advanced_settings)
+        if dialog.result:
+            self.advanced_settings = dialog.result
+            print("Advanced settings updated:", self.advanced_settings)
         
     def _create_image_selection_tab(self):
         """Create the image selection tab."""
@@ -163,9 +302,54 @@ class GUIApp:
         self.robot_capacity_var = tk.StringVar(value=str(self.robot_capacity))
         ttk.Entry(settings_frame, textvariable=self.robot_capacity_var, width=10).grid(row=4, column=1, padx=5, pady=2)
         
-        self.dither_var = tk.BooleanVar(value=self.dithering)
-        ttk.Checkbutton(settings_frame, text="Enable Dithering", variable=self.dither_var).grid(
-            row=5, column=0, columnspan=2, sticky="w", padx=5, pady=2)
+        # Dithering settings directly in the main interface
+        ttk.Label(settings_frame, text="Dithering:").grid(row=5, column=0, sticky="w", padx=5, pady=2)
+        self.dithering_var = tk.StringVar(value=self.advanced_settings.get('dithering', 'none'))
+        dithering_combo = ttk.Combobox(settings_frame, textvariable=self.dithering_var, 
+                                      values=['none', 'floyd-steinberg', 'jarvis', 'stucki'],
+                                      width=15)
+        dithering_combo.grid(row=5, column=1, padx=5, pady=2)
+        dithering_combo.state(['readonly'])
+        
+        ttk.Label(settings_frame, text="Dithering Strength:").grid(row=6, column=0, sticky="w", padx=5, pady=2)
+        self.dithering_strength_frame = ttk.Frame(settings_frame)
+        self.dithering_strength_frame.grid(row=6, column=1, sticky="w", padx=5, pady=2)
+        
+        self.strength_var = tk.DoubleVar(value=self.advanced_settings.get('dithering_strength', 1.0))
+        strength_scale = ttk.Scale(self.dithering_strength_frame, from_=0.0, to=1.0, 
+                                 variable=self.strength_var, orient=tk.HORIZONTAL, length=100)
+        strength_scale.pack(side=tk.LEFT)
+        
+        strength_label = ttk.Label(self.dithering_strength_frame, textvariable=self.strength_var, width=4)
+        strength_label.pack(side=tk.LEFT, padx=5)
+        
+        # Enable/disable dithering strength based on selected dithering algorithm
+        def update_dithering_controls(*args):
+            if self.dithering_var.get() == 'none':
+                strength_scale.state(['disabled'])
+            else:
+                strength_scale.state(['!disabled'])
+        
+        self.dithering_var.trace_add('write', update_dithering_controls)
+        # Call once to set initial state
+        update_dithering_controls()
+
+        # Path pattern settings
+        ttk.Label(settings_frame, text="Path Pattern:").grid(row=7, column=0, sticky="w", padx=5, pady=2)
+        self.fill_pattern_var = tk.StringVar(value=self.advanced_settings.get('fill_pattern', 'zigzag'))
+        fill_pattern_combo = ttk.Combobox(settings_frame, textvariable=self.fill_pattern_var,
+                                          values=['zigzag', 'concentric', 'spiral', 'dots'], width=15)
+        fill_pattern_combo.grid(row=7, column=1, padx=5, pady=2)
+        fill_pattern_combo.state(['readonly'])
+
+        ttk.Label(settings_frame, text="Fill Angle:").grid(row=8, column=0, sticky="w", padx=5, pady=2)
+        self.fill_angle_var = tk.IntVar(value=self.advanced_settings.get('fill_angle', 45))
+        ttk.Entry(settings_frame, textvariable=self.fill_angle_var, width=10).grid(row=8, column=1, padx=5, pady=2)
+
+        # Enable path generation checkbox
+        self.enable_paths_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(settings_frame, text="Enable Path Generation",
+                        variable=self.enable_paths_var).grid(row=9, column=0, columnspan=2, sticky="w", padx=5, pady=5)
         
         # Process button
         process_button = ttk.Button(step2_frame, text="Process Image", 
@@ -236,35 +420,47 @@ class GUIApp:
             self.quantization_method = self.quant_var.get()
             self.max_colors = int(self.max_colors_var.get())
             self.robot_capacity = int(self.robot_capacity_var.get())
-            self.dithering = self.dither_var.get()
-            
-            # Recreate instruction generator with new settings
-            self.instruction_generator = MuralInstructionGenerator(
+            self.dithering = self.dithering_var.get()
+            fill_pattern = self.fill_pattern_var.get()
+            fill_angle = int(self.fill_angle_var.get())
+            enable_paths = self.enable_paths_var.get()
+
+            # Create generator with current settings
+            generator = MuralInstructionGenerator(
                 wall_width=self.wall_width,
                 wall_height=self.wall_height,
-                available_colors=self.available_colors,
                 resolution_mm=self.resolution_mm,
                 quantization_method=self.quantization_method,
-                dithering=self.dithering,
+                dithering=self.dithering_var.get(),
+                dithering_strength=self.strength_var.get(),
                 max_colors=self.max_colors,
                 robot_capacity=self.robot_capacity,
-                color_selection=self.color_selection
+                fill_pattern=fill_pattern,
+                fill_angle=fill_angle
             )
             
-            # Process the image
             output_path = os.path.join(self.painting_folder, self.output_instructions)
-            instructions, quantized_image = self.instruction_generator.process_image(
-                self.input_image, output_path)
-            
-            message = f"Processing complete. Instructions saved to {output_path}"
+
+            if enable_paths:
+                instructions, quantized_image = generator.process_image(
+                    self.input_image, output_path)
+            else:
+                # Only perform quantization and save preview
+                image = generator.load_image(self.input_image)
+                if generator.color_selection == "auto":
+                    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                    optimal_colors = generator.select_optimal_colors(image_rgb)
+                    generator.available_colors = optimal_colors
+                quantized_image, _ = generator.quantize_to_available_colors(image)
+                preview_path = os.path.join(self.painting_folder, "quantized_preview.jpg")
+                cv2.imwrite(preview_path, quantized_image)
+                instructions = []
+
+            message = "Processing complete."
             self.process_status.set(message)
             self.status_text.set(message)
-            
-            messagebox.showinfo("Processing Complete", 
-                              "Image processing complete!\n\nProceed to Visualization tab.")
-            
-            # Advanced to next tab
-            self.notebook.select(2)  # Switch to visualization tab (0-indexed)
+            messagebox.showinfo("Processing Complete", "Image processing complete!\n\nProceed to Visualization tab.")
+            self.notebook.select(2)
             
         except Exception as e:
             error_msg = f"Error processing image: {str(e)}"

@@ -6,7 +6,10 @@
     "resolution_mm": 5.0,
     "output_instructions": "painting_instructions.json",
     "quantization_method": "kmeans",
-    "dithering": false,
+    "dithering": "none",
+    "dithering_strength": 1.0,
+    "fill_pattern": "zigzag",
+    "fill_angle": 45,
     "max_colors": 12,
     "robot_capacity": 6,
     "color_selection": "auto",
@@ -25,6 +28,34 @@
         "description": "Optimized color mapping based on image's dominant colors",
         "histogram_bins": 8,
         "peak_threshold": 0.001
+      }
+    },
+    "dithering_options": {
+      "none": {
+        "description": "No dithering applied"
+      },
+      "floyd-steinberg": {
+        "description": "Classic Floyd-Steinberg error diffusion dithering"
+      },
+      "jarvis": {
+        "description": "Jarvis-Judice-Ninke dithering with wider error diffusion"
+      },
+      "stucki": {
+        "description": "Stucki dithering, similar to Jarvis but with different weights"
+      }
+    },
+    "fill_pattern_options": {
+      "zigzag": {
+        "description": "Zigzag pattern for efficient area filling"
+      },
+      "concentric": {
+        "description": "Concentric pattern for more organic look"
+      },
+      "spiral": {
+        "description": "Spiral pattern from center outward"
+      },
+      "dots": {
+        "description": "Dot pattern for stippling effect"
       }
     }
   },
