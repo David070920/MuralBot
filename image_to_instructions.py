@@ -11,9 +11,17 @@ from scipy.cluster.vq import kmeans, vq
 # Set environment variable to avoid joblib warnings about CPU cores detection
 os.environ['LOKY_MAX_CPU_COUNT'] = str(os.cpu_count())
 from sklearn.cluster import KMeans
+import joblib
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+import time
+import skimage.morphology as morphology
+from skimage.graph import route_through_array
+from scipy.spatial import Delaunay
 
 class MuralInstructionGenerator:
-    def __init__(self, wall_width, wall_height, available_colors, resolution_mm=5, quantization_method="euclidean", dithering=False):
+    def __init__(self, wall_width, wall_height, available_colors=None, resolution_mm=5, 
+                 quantization_method="euclidean", dithering=False, max_colors=30, 
+                 robot_capacity=6, color_selection="auto"):
         """
         Initialize the mural painting instruction generator.
         
@@ -24,15 +32,59 @@ class MuralInstructionGenerator:
             resolution_mm: Resolution in mm for path planning
             quantization_method: Method for color quantization ("euclidean", "kmeans", or "color_palette")
             dithering: Whether to apply Floyd-Steinberg dithering to improve color appearance
+            max_colors: Maximum number of colors to use in the mural
+            robot_capacity: Number of colors the robot can hold simultaneously
+            color_selection: Method for color selection ("auto" or "manual")
         """
         self.wall_width = wall_width
         self.wall_height = wall_height
-        self.available_colors = available_colors
         self.resolution_mm = resolution_mm
         self.quantization_method = quantization_method
         self.dithering = dithering
         self.paint_usage = None  # Will store paint usage estimates per color
+        self.max_colors = max_colors  # Maximum colors to use in the mural
+        self.robot_capacity = robot_capacity  # Number of colors robot can hold at once
+        self.color_selection = color_selection  # Color selection method
+        self.color_change_position = [0, 2000]  # Position to change colors (bottom left)
+        self.optimized_color_groups = []  # Will store grouped colors for robot capacity
         
+        # Load the MTN94 color database by default
+        self.available_colors = self._load_mtn94_colors() if available_colors is None else available_colors
+    
+    def _load_mtn94_colors(self):
+        """Load colors from the MTN94 color database."""
+        color_db_path = os.path.join(os.path.dirname(__file__), "data", "mtn94_colors.json")
+        
+        try:
+            with open(color_db_path, 'r') as f:
+                color_db = json.load(f)
+                color_data = color_db["colors"]
+                print(f"Loaded {len(color_data)} colors from MTN94 database")
+                
+                # Extract RGB values from the database
+                available_colors_rgb = []
+                for color in color_data:
+                    # Ensure each RGB value is properly converted to a tuple of integers
+                    rgb = tuple(int(c) for c in color["rgb"])
+                    available_colors_rgb.append(rgb)
+                    
+                return available_colors_rgb
+                
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading color database: {e}")
+            print("Using default colors instead")
+            # Return basic default colors as fallback
+            return [
+                (0, 0, 0),       # Black
+                (255, 255, 255),  # White
+                (255, 0, 0),     # Red
+                (0, 255, 0),     # Green
+                (0, 0, 255),     # Blue
+                (255, 255, 0),   # Yellow
+                (255, 0, 255),   # Magenta
+                (0, 255, 255)    # Cyan
+            ]
+    
     def load_image(self, image_path):
         """Load and resize image to fit the wall dimensions."""
         # Load image
@@ -144,6 +196,14 @@ class MuralInstructionGenerator:
         # Convert available colors to numpy array
         colors_array = np.array(self.available_colors)
         num_colors = len(colors_array)
+        
+        # Ensure we have at least one color
+        if num_colors == 0:
+            print("Warning: No available colors specified. Loading colors from MTN94 database.")
+            # Load colors from the MTN94 database
+            self.available_colors = self._load_mtn94_colors()
+            colors_array = np.array(self.available_colors)
+            num_colors = len(colors_array)
         
         print("  Performing K-means clustering for improved color mapping...")
         
@@ -383,27 +443,51 @@ class MuralInstructionGenerator:
         color_regions = {}
         num_colors = len(self.available_colors)
         
+        # Get image dimensions
+        height, width = color_indices.shape
+        
         # Create progress bar for color regions
         with tqdm(total=num_colors, desc="Finding regions") as pbar:
             for color_idx in range(num_colors):
-                # Create binary mask for this color
-                mask = (color_indices == color_idx).astype(np.uint8)
-                
-                # Skip if no pixels of this color
-                if not np.any(mask):
+                # Skip if this color isn't used
+                if not np.any(color_indices == color_idx):
                     pbar.update(1)
                     continue
-                    
-                # Find connected components
+                
+                # Process large images in chunks to avoid memory issues
+                chunk_height = 500  # Process 500 rows at a time
+                regions = []
+                
+                # Create a reusable structure for connected components
                 structure = np.ones((3, 3), dtype=np.int32)
-                labeled, num_features = label(mask, structure)
+                
+                # Generate a unique label ID for each chunk to avoid conflicts
+                next_label_id = 1
+                
+                # Process the image in horizontal chunks
+                for y_start in range(0, height, chunk_height):
+                    y_end = min(y_start + chunk_height, height)
+                    
+                    # Create binary mask for this color in the current chunk
+                    chunk_mask = (color_indices[y_start:y_end, :] == color_idx).astype(np.uint8)
+                    
+                    # Skip if no pixels of this color in the chunk
+                    if not np.any(chunk_mask):
+                        continue
+                        
+                    # Find connected components in this chunk
+                    labeled_chunk, num_features = label(chunk_mask, structure)
+                    
+                    # Process each feature in this chunk
+                    for feature_idx in range(1, num_features + 1):
+                        feature_mask = np.zeros_like(chunk_mask, dtype=np.uint8)
+                        feature_mask[labeled_chunk == feature_idx] = 1
+                        
+                        # Check if this region is large enough to be worth processing
+                        if np.sum(feature_mask) > 5:  # Skip tiny regions with fewer than 5 pixels
+                            regions.append((feature_mask, y_start, 0, y_end, width))
                 
                 # Store regions for this color
-                regions = []
-                for feature_idx in range(1, num_features + 1):
-                    feature_mask = (labeled == feature_idx).astype(np.uint8)
-                    regions.append(feature_mask)
-                    
                 color_regions[color_idx] = regions
                 pbar.update(1)
             
@@ -419,8 +503,11 @@ class MuralInstructionGenerator:
             for color_idx, regions in color_regions.items():
                 color_paths = []
                 
-                for region_mask in regions:
-                    # Find contours
+                for region_data in regions:
+                    # Unpack region data (mask, y_start, x_start, y_end, x_end)
+                    region_mask, y_start, x_start, y_end, x_end = region_data
+                    
+                    # Find contours in this region
                     contours, _ = cv2.findContours(
                         region_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
                     )
@@ -428,12 +515,17 @@ class MuralInstructionGenerator:
                     for contour in contours:
                         # Check if contour is large enough to paint
                         area = cv2.contourArea(contour)
-                        if area < 100:  # Skip tiny regions
+                        if area < 10:  # Skip tiny regions
                             continue
                             
+                        # Adjust contour coordinates to account for region position
+                        adjusted_contour = contour.copy()
+                        adjusted_contour[:, :, 0] += x_start  # Add x offset
+                        adjusted_contour[:, :, 1] += y_start  # Add y offset
+                        
                         # Simplify contour to reduce number of points
-                        epsilon = 0.01 * cv2.arcLength(contour, True)
-                        approx = cv2.approxPolyDP(contour, epsilon, True)
+                        epsilon = 0.01 * cv2.arcLength(adjusted_contour, True)
+                        approx = cv2.approxPolyDP(adjusted_contour, epsilon, True)
                         
                         # Get contour points
                         points = [tuple(map(int, point[0])) for point in approx]
@@ -444,7 +536,7 @@ class MuralInstructionGenerator:
                             
                         # For larger areas, add fill pattern
                         if area > 500:
-                            fill_paths = self.generate_fill_pattern(contour, self.resolution_mm)
+                            fill_paths = self.generate_fill_pattern(adjusted_contour, self.resolution_mm)
                             color_paths.extend(fill_paths)
                         
                         color_paths.append(points)
@@ -607,8 +699,342 @@ class MuralInstructionGenerator:
         
         return instructions
     
+    def group_colors_by_robot_capacity(self, color_indices):
+        """
+        Group colors into batches that can be painted simultaneously by the robot.
+        Colors are grouped by usage frequency and spatial proximity.
+        """
+        # Get color usage statistics
+        color_stats = {}
+        for color_idx in range(len(self.available_colors)):
+            pixel_count = np.sum(color_indices == color_idx)
+            if pixel_count > 0:
+                color_stats[color_idx] = {
+                    'count': int(pixel_count),
+                    'percentage': (pixel_count / color_indices.size) * 100
+                }
+        
+        # Sort colors by usage (most used first)
+        sorted_colors = sorted(color_stats.keys(), key=lambda x: color_stats[x]['count'], reverse=True)
+        
+        # Calculate color proximity matrix (how close colors tend to be to each other)
+        proximity_matrix = self._calculate_color_proximity(color_indices, sorted_colors)
+        
+        # Group colors into batches that fit robot capacity
+        color_groups = []
+        remaining_colors = sorted_colors.copy()
+        
+        while remaining_colors:
+            current_group = []
+            
+            # Start with the most used remaining color
+            if remaining_colors:
+                most_used = remaining_colors[0]
+                current_group.append(most_used)
+                remaining_colors.remove(most_used)
+            
+            # Fill the group with colors that are most proximate to existing group colors
+            while len(current_group) < self.robot_capacity and remaining_colors:
+                best_score = float('-inf')
+                best_color = None
+                
+                for color in remaining_colors:
+                    # Calculate proximity score to current group
+                    score = 0
+                    for group_color in current_group:
+                        score += proximity_matrix.get((min(color, group_color), max(color, group_color)), 0)
+                    
+                    # Also consider color usage
+                    usage_weight = 0.3  # Weight for usage vs. proximity
+                    score += usage_weight * color_stats[color]['percentage']
+                    
+                    if score > best_score:
+                        best_score = score
+                        best_color = color
+                
+                if best_color is not None:
+                    current_group.append(best_color)
+                    remaining_colors.remove(best_color)
+                else:
+                    break
+            
+            # Add the group if not empty
+            if current_group:
+                color_groups.append(current_group)
+        
+        print(f"Grouped {len(sorted_colors)} colors into {len(color_groups)} batches for the robot")
+        for i, group in enumerate(color_groups):
+            print(f"  Batch {i+1}: Colors {group}")
+        
+        # Store the optimized groups
+        self.optimized_color_groups = color_groups
+        return color_groups
+    
+    def _calculate_color_proximity(self, color_indices, color_list):
+        """
+        Calculate spatial proximity between colors in the image.
+        Returns a dictionary with color pairs as keys and proximity scores as values.
+        """
+        # Sample the image to speed up calculation
+        h, w = color_indices.shape
+        sample_rate = max(1, min(h, w) // 200)  # Sample at most 200 points in each dimension
+        
+        # Create a proximity matrix (symmetric, so only store one half)
+        proximity = {}
+        
+        print("Calculating color proximity metrics...")
+        # For each pixel in the sample
+        for y in range(0, h, sample_rate):
+            for x in range(0, w, sample_rate):
+                color = color_indices[y, x]
+                
+                # Check only colors we're interested in
+                if color not in color_list:
+                    continue
+                    
+                # Check neighboring pixels
+                for dy in range(-1, 2):
+                    for dx in range(-1, 2):
+                        if dx == 0 and dy == 0:
+                            continue
+                            
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < w and 0 <= ny < h:
+                            neighbor = color_indices[ny, nx]
+                            if neighbor != color and neighbor in color_list:
+                                # Store pairs with smaller index first to avoid duplicates
+                                pair = (min(color, neighbor), max(color, neighbor))
+                                proximity[pair] = proximity.get(pair, 0) + 1
+        
+        return proximity
+    
+    def generate_optimized_instructions(self, all_paths):
+        """
+        Generate painting instructions optimized for the robot's limited color capacity.
+        Takes into account the need to visit the color change position when switching between color groups.
+        """
+        if not self.optimized_color_groups:
+            print("Warning: Color groups not set. Running automatic color grouping.")
+            # This shouldn't happen normally, but just in case
+            # We'll need some dummy color indices for this
+            dummy_indices = np.zeros((100, 100), dtype=int)
+            for color_idx in all_paths.keys():
+                dummy_indices[color_idx, color_idx] = 1
+            self.group_colors_by_robot_capacity(dummy_indices)
+        
+        instructions = []
+        
+        # Start with a "home" instruction
+        instructions.append({
+            "type": "home",
+            "message": "Moving to home position"
+        })
+        
+        # For each color group
+        for group_idx, color_group in enumerate(self.optimized_color_groups):
+            # Move to color change position
+            instructions.append({
+                "type": "move",
+                "x": self.color_change_position[0],
+                "y": self.color_change_position[1],
+                "spray": False,
+                "message": f"Moving to color change position to load color group {group_idx+1}"
+            })
+            
+            # Load colors for this group
+            instructions.append({
+                "type": "load_colors",
+                "colors": [{"index": color_idx, "rgb": self.available_colors[color_idx]} for color_idx in color_group],
+                "message": f"Loading colors for group {group_idx+1}: {color_group}"
+            })
+            
+            # Now paint with each color in this group
+            for color_idx in color_group:
+                # Skip if color has no paths
+                if color_idx not in all_paths:
+                    continue
+                    
+                # Change to this color
+                instructions.append({
+                    "type": "color",
+                    "index": color_idx,
+                    "rgb": self.available_colors[color_idx],
+                    "message": f"Changing to color {color_idx} - RGB{self.available_colors[color_idx]}"
+                })
+                
+                # For each path with this color
+                for path in all_paths[color_idx]:
+                    if not path:
+                        continue
+                        
+                    # Move to the first point with spray off
+                    first_point = path[0]
+                    instructions.append({
+                        "type": "move",
+                        "x": first_point[0],
+                        "y": first_point[1],
+                        "spray": False,
+                        "message": f"Moving to ({first_point[0]}, {first_point[1]})"
+                    })
+                    
+                    # Turn spray on
+                    instructions.append({
+                        "type": "spray",
+                        "state": True,
+                        "message": "Starting to spray"
+                    })
+                    
+                    # Follow the path with spray on
+                    for point in path[1:]:
+                        instructions.append({
+                            "type": "move",
+                            "x": point[0],
+                            "y": point[1],
+                            "spray": True,
+                            "message": f"Moving to ({point[0]}, {point[1]}) while spraying"
+                        })
+                    
+                    # Turn spray off
+                    instructions.append({
+                        "type": "spray",
+                        "state": False,
+                        "message": "Stopping spray"
+                    })
+        
+        # End with a "home" instruction
+        instructions.append({
+            "type": "home",
+            "message": "Returning to home position"
+        })
+        
+        return instructions
+
+    def select_optimal_colors(self, image_rgb):
+        """
+        Select the optimal colors for the mural based on the image content.
+        Returns a list of RGB color tuples.
+        """
+        print(f"Selecting optimal {self.max_colors} colors for the mural...")
+        
+        if self.color_selection == "auto":
+            # Automatically select colors based on image content
+            return self._select_colors_from_image(image_rgb)
+        else:
+            # Use the default colors provided
+            print("Using manually specified colors")
+            return self.available_colors
+
+    def _select_colors_from_image(self, image_rgb):
+        """
+        Analyze the image and select the best colors from the MTN94 spray paint database.
+        """
+        # Load the MTN94 color database
+        color_db_path = os.path.join(os.path.dirname(__file__), "data", "mtn94_colors.json")
+        
+        try:
+            with open(color_db_path, 'r') as f:
+                color_db = json.load(f)
+                color_data = color_db["colors"]
+                print(f"Loaded {len(color_data)} colors from MTN94 database for color selection")
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading color database: {e}")
+            print("Using already loaded colors instead")
+            return self.available_colors[:self.max_colors]  # Return a subset of already loaded colors
+            
+        # Use available colors from the database
+        available_colors_rgb = []
+        for color in color_data:
+            # Ensure each RGB value is properly converted to a tuple of integers
+            rgb = tuple(int(c) for c in color["rgb"])
+            available_colors_rgb.append(rgb)
+        
+        # Reshape image to a list of pixels
+        pixels = image_rgb.reshape(-1, 3)
+        
+        # Sample pixels for faster processing
+        sample_size = min(100000, len(pixels))
+        pixel_sample = pixels[np.random.choice(len(pixels), sample_size, replace=False)]
+        
+        # Find optimal colors using K-means clustering
+        print("Analyzing image colors using K-means clustering...")
+        num_clusters = min(self.max_colors, 30)  # Cap at 30 for practical reasons
+        
+        # Run K-means to find dominant colors
+        kmeans = KMeans(n_clusters=num_clusters, n_init=10, random_state=42)
+        kmeans.fit(pixel_sample)
+        centroids = kmeans.cluster_centers_
+        
+        # Get the pixel count for each cluster
+        labels = kmeans.predict(pixel_sample)
+        cluster_sizes = np.bincount(labels)
+        
+        # Sort clusters by size (highest first)
+        sorted_indices = np.argsort(cluster_sizes)[::-1]
+        sorted_centroids = centroids[sorted_indices]
+        
+        # Match each centroid to the closest MTN94 color
+        selected_colors = []
+        selected_color_indices = []
+        
+        print("Matching dominant colors to available spray paints...")
+        for centroid in sorted_centroids:
+            # Convert centroid to array with proper shape for distance calculation
+            centroid_array = np.array(centroid, dtype=np.float32)
+            colors_array = np.array(available_colors_rgb, dtype=np.float32)
+            
+            # Find closest match in the MTN94 palette using Euclidean distance
+            distances = np.sqrt(np.sum((colors_array - centroid_array)**2, axis=1))
+            closest_idx = np.argmin(distances)
+            
+            # Avoid duplicate colors
+            if closest_idx not in selected_color_indices:
+                selected_color_indices.append(closest_idx)
+                selected_colors.append(available_colors_rgb[closest_idx])
+                
+                # Print the selected color and its name
+                color_name = color_data[closest_idx]["name"]
+                code = color_data[closest_idx]["code"]
+                rgb = available_colors_rgb[closest_idx]
+                print(f"Selected: {color_name} ({code}) - RGB{rgb}")
+        
+        # Ensure we always include black and white for better results
+        black_idx = None
+        white_idx = None
+        
+        # Find indices for black and white
+        for i, color in enumerate(available_colors_rgb):
+            if color[0] < 20 and color[1] < 20 and color[2] < 20:
+                black_idx = i
+                break
+        
+        for i, color in enumerate(available_colors_rgb):
+            if color[0] > 240 and color[1] > 240 and color[2] > 240:
+                white_idx = i
+                break
+        
+        # Add black and white if they weren't already selected
+        if black_idx is not None and black_idx not in selected_color_indices:
+            selected_color_indices.append(black_idx)
+            selected_colors.append(available_colors_rgb[black_idx])
+            print(f"Added black: {color_data[black_idx]['name']} - RGB{available_colors_rgb[black_idx]}")
+        
+        if white_idx is not None and white_idx not in selected_color_indices:
+            selected_color_indices.append(white_idx)
+            selected_colors.append(available_colors_rgb[white_idx])
+            print(f"Added white: {color_data[white_idx]['name']} - RGB{available_colors_rgb[white_idx]}")
+            
+        # Limit to max_colors
+        selected_colors = selected_colors[:self.max_colors]
+        
+        print(f"Final selection: {len(selected_colors)} colors")
+        return selected_colors
+
     def process_image(self, image_path, output_path=None):
         """Process an image and generate painting instructions."""
+        # Ensure painting folder exists
+        painting_folder = os.path.join(os.path.dirname(__file__), "painting")
+        os.makedirs(painting_folder, exist_ok=True)
+        
         # Load and resize image
         print("Step 1: Loading image...")
         image = self.load_image(image_path)
@@ -634,12 +1060,20 @@ class MuralInstructionGenerator:
         print("Step 5: Optimizing paths...")
         optimized_paths = self.optimize_paths(paths)
         
-        # Generate instructions
-        print("Step 6: Generating instructions...")
-        instructions = self.generate_instructions(optimized_paths)
+        # Group colors by robot capacity
+        print("Step 6: Grouping colors by robot capacity...")
+        self.group_colors_by_robot_capacity(color_indices)
+        
+        # Generate optimized instructions
+        print("Step 7: Generating optimized instructions...")
+        instructions = self.generate_optimized_instructions(optimized_paths)
         
         # Save instructions to JSON if output path is provided
         if output_path:
+            # If output_path is not an absolute path, save to the painting folder
+            if not os.path.isabs(output_path):
+                output_path = os.path.join(painting_folder, output_path)
+                
             with open(output_path, 'w') as f:
                 json.dump({
                     "wall_width": self.wall_width,
@@ -651,8 +1085,15 @@ class MuralInstructionGenerator:
             print(f"Instructions saved to {output_path}")
         
         # Also save the quantized image for reference
-        cv2.imwrite("quantized_preview.jpg", quantized_image)
-        print("Preview image saved as 'quantized_preview.jpg'")
+        preview_path = os.path.join(painting_folder, "quantized_preview.jpg")
+        cv2.imwrite(preview_path, quantized_image)
+        print(f"Preview image saved as '{preview_path}'")
+        
+        # Save paint usage report to a text file
+        usage_report_path = os.path.join(painting_folder, "paint_usage_report.txt")
+        with open(usage_report_path, 'w') as f:
+            f.write(self.get_paint_usage_report())
+        print(f"Paint usage report saved as '{usage_report_path}'")
         
         return instructions, quantized_image
 
@@ -670,6 +1111,11 @@ if __name__ == "__main__":
                        help='Color quantization method (overrides config file)')
     parser.add_argument('--dithering', '-d', action='store_true',
                        help='Enable dithering for better visual appearance')
+    parser.add_argument('--max_colors', '-mc', type=int, help='Maximum number of colors to use (overrides config file)')
+    parser.add_argument('--robot_capacity', '-rc', type=int, 
+                       help='Number of colors the robot can hold simultaneously (overrides config file)')
+    parser.add_argument('--color_selection', '-cs', choices=['auto', 'manual'],
+                       help='Color selection method (overrides config file)')
     
     args = parser.parse_args()
     
@@ -678,9 +1124,11 @@ if __name__ == "__main__":
         with open(args.config, 'r') as f:
             config = json.load(f)
         img_config = config['image_processing']
+        hardware_config = config.get('hardware', {})
     except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
         print(f"Error loading config file: {e}")
         img_config = {}
+        hardware_config = {}
     
     # Get parameters, prioritizing command line arguments over config file
     image_path = args.image_path or img_config.get('input_image')
@@ -690,18 +1138,12 @@ if __name__ == "__main__":
     resolution_mm = args.resolution or img_config.get('resolution_mm', 5.0)
     quantization_method = args.quantization or img_config.get('quantization_method', 'euclidean')
     dithering = args.dithering or img_config.get('dithering', False)
+    max_colors = args.max_colors or img_config.get('max_colors', 30)
+    robot_capacity = args.robot_capacity or img_config.get('robot_capacity', 6)
+    color_selection = args.color_selection or img_config.get('color_selection', 'auto')
     
-    # Define available colors from config or defaults
-    available_colors = img_config.get('available_colors', [
-        (0, 0, 0),       # Black
-        (255, 0, 0),     # Red
-        (0, 0, 255),     # Blue
-        (0, 255, 0),     # Green
-        (255, 255, 0),   # Yellow
-        (255, 0, 255),   # Magenta
-        (0, 255, 255),   # Cyan
-        (255, 255, 255)  # White
-    ])
+    # Get color change position from hardware config
+    color_change_position = hardware_config.get('color_change_position', [0, wall_height])
     
     # Check if image path is provided
     if not image_path:
@@ -712,11 +1154,34 @@ if __name__ == "__main__":
     generator = MuralInstructionGenerator(
         wall_width=wall_width,
         wall_height=wall_height,
-        available_colors=available_colors,
+        available_colors=None,  # Set to None to use MTN94 colors by default
         resolution_mm=resolution_mm,
         quantization_method=quantization_method,
-        dithering=dithering
+        dithering=dithering,
+        max_colors=max_colors,
+        robot_capacity=robot_capacity,
+        color_selection=color_selection
     )
+    
+    # Set the color change position
+    generator.color_change_position = color_change_position
+    
+    # If using auto color selection, load and analyze the image first to select optimal colors
+    if color_selection == "auto":
+        print("Loading image for color analysis...")
+        image = cv2.imread(image_path)
+        if image is None:
+            print(f"Error: Could not load image from {image_path}")
+            exit(1)
+        
+        # Convert to RGB for color analysis
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        
+        # Select optimal colors
+        optimal_colors = generator.select_optimal_colors(image_rgb)
+        
+        # Update available colors
+        generator.available_colors = optimal_colors
     
     # Process image and generate instructions
     instructions, _ = generator.process_image(image_path, output_path)

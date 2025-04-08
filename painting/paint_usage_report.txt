@@ -1,0 +1,231 @@
+Estimated Paint Usage:
+=====================
+Color 0 - RGB(255, 255, 255):
+  - Pixels: 877,563
+  - Coverage: 29.25%
+  - Area: 877.56 cm²
+  - Paint required: 351.03 ml (High consumption: consider using a larger can for this color)
+Color 3 - RGB(195, 198, 201):
+  - Pixels: 93,271
+  - Coverage: 3.11%
+  - Area: 93.27 cm²
+  - Paint required: 37.31 ml
+Color 4 - RGB(179, 179, 179):
+  - Pixels: 52,376
+  - Coverage: 1.75%
+  - Area: 52.38 cm²
+  - Paint required: 20.95 ml
+Color 5 - RGB(125, 125, 125):
+  - Pixels: 188,364
+  - Coverage: 6.28%
+  - Area: 188.36 cm²
+  - Paint required: 75.35 ml
+Color 6 - RGB(66, 66, 66):
+  - Pixels: 46,185
+  - Coverage: 1.54%
+  - Area: 46.19 cm²
+  - Paint required: 18.47 ml
+Color 18 - RGB(48, 136, 124):
+  - Pixels: 1,897
+  - Coverage: 0.06%
+  - Area: 1.90 cm²
+  - Paint required: 0.76 ml
+Color 24 - RGB(18, 37, 67):
+  - Pixels: 5,658
+  - Coverage: 0.19%
+  - Area: 5.66 cm²
+  - Paint required: 2.26 ml
+Color 51 - RGB(200, 177, 139):
+  - Pixels: 24,663
+  - Coverage: 0.82%
+  - Area: 24.66 cm²
+  - Paint required: 9.87 ml
+Color 52 - RGB(165, 138, 105):
+  - Pixels: 58,427
+  - Coverage: 1.95%
+  - Area: 58.43 cm²
+  - Paint required: 23.37 ml
+Color 53 - RGB(134, 105, 60):
+  - Pixels: 15,194
+  - Coverage: 0.51%
+  - Area: 15.19 cm²
+  - Paint required: 6.08 ml
+Color 54 - RGB(91, 61, 32):
+  - Pixels: 17,088
+  - Coverage: 0.57%
+  - Area: 17.09 cm²
+  - Paint required: 6.84 ml
+Color 72 - RGB(120, 85, 50):
+  - Pixels: 24,045
+  - Coverage: 0.80%
+  - Area: 24.05 cm²
+  - Paint required: 9.62 ml
+Color 73 - RGB(65, 51, 36):
+  - Pixels: 38,411
+  - Coverage: 1.28%
+  - Area: 38.41 cm²
+  - Paint required: 15.36 ml
+Color 74 - RGB(45, 33, 27):
+  - Pixels: 21,204
+  - Coverage: 0.71%
+  - Area: 21.20 cm²
+  - Paint required: 8.48 ml
+Color 101 - RGB(89, 53, 115):
+  - Pixels: 60
+  - Coverage: 0.00%
+  - Area: 0.06 cm²
+  - Paint required: 0.02 ml
+Color 105 - RGB(62, 80, 181):
+  - Pixels: 121
+  - Coverage: 0.00%
+  - Area: 0.12 cm²
+  - Paint required: 0.05 ml
+Color 108 - RGB(108, 143, 202):
+  - Pixels: 23,708
+  - Coverage: 0.79%
+  - Area: 23.71 cm²
+  - Paint required: 9.48 ml
+Color 109 - RGB(126, 159, 209):
+  - Pixels: 91,051
+  - Coverage: 3.04%
+  - Area: 91.05 cm²
+  - Paint required: 36.42 ml
+Color 111 - RGB(146, 190, 231):
+  - Pixels: 401
+  - Coverage: 0.01%
+  - Area: 0.40 cm²
+  - Paint required: 0.16 ml
+Color 113 - RGB(183, 213, 231):
+  - Pixels: 1,811
+  - Coverage: 0.06%
+  - Area: 1.81 cm²
+  - Paint required: 0.72 ml
+Color 114 - RGB(204, 231, 229):
+  - Pixels: 67,793
+  - Coverage: 2.26%
+  - Area: 67.79 cm²
+  - Paint required: 27.12 ml
+Color 117 - RGB(112, 188, 202):
+  - Pixels: 6,597
+  - Coverage: 0.22%
+  - Area: 6.60 cm²
+  - Paint required: 2.64 ml
+Color 126 - RGB(231, 231, 231):
+  - Pixels: 20,235
+  - Coverage: 0.67%
+  - Area: 20.23 cm²
+  - Paint required: 8.09 ml
+Color 127 - RGB(236, 236, 236):
+  - Pixels: 17,660
+  - Coverage: 0.59%
+  - Area: 17.66 cm²
+  - Paint required: 7.06 ml
+Color 128 - RGB(200, 200, 200):
+  - Pixels: 141,086
+  - Coverage: 4.70%
+  - Area: 141.09 cm²
+  - Paint required: 56.43 ml
+Color 129 - RGB(168, 168, 168):
+  - Pixels: 92,328
+  - Coverage: 3.08%
+  - Area: 92.33 cm²
+  - Paint required: 36.93 ml
+Color 130 - RGB(146, 146, 146):
+  - Pixels: 249,243
+  - Coverage: 8.31%
+  - Area: 249.24 cm²
+  - Paint required: 99.70 ml
+Color 131 - RGB(105, 105, 105):
+  - Pixels: 81,732
+  - Coverage: 2.72%
+  - Area: 81.73 cm²
+  - Paint required: 32.69 ml
+Color 132 - RGB(86, 86, 86):
+  - Pixels: 50,425
+  - Coverage: 1.68%
+  - Area: 50.42 cm²
+  - Paint required: 20.17 ml
+Color 133 - RGB(47, 47, 47):
+  - Pixels: 72,753
+  - Coverage: 2.43%
+  - Area: 72.75 cm²
+  - Paint required: 29.10 ml
+Color 140 - RGB(30, 30, 30):
+  - Pixels: 160,376
+  - Coverage: 5.35%
+  - Area: 160.38 cm²
+  - Paint required: 64.15 ml
+Color 141 - RGB(30, 30, 120):
+  - Pixels: 59
+  - Coverage: 0.00%
+  - Area: 0.06 cm²
+  - Paint required: 0.02 ml
+Color 157 - RGB(192, 192, 192):
+  - Pixels: 85,488
+  - Coverage: 2.85%
+  - Area: 85.49 cm²
+  - Paint required: 34.20 ml
+Color 159 - RGB(70, 130, 180):
+  - Pixels: 9,492
+  - Coverage: 0.32%
+  - Area: 9.49 cm²
+  - Paint required: 3.80 ml
+Color 181 - RGB(180, 180, 180):
+  - Pixels: 4,207
+  - Coverage: 0.14%
+  - Area: 4.21 cm²
+  - Paint required: 1.68 ml
+Color 182 - RGB(20, 20, 20):
+  - Pixels: 88,997
+  - Coverage: 2.97%
+  - Area: 89.00 cm²
+  - Paint required: 35.60 ml
+Color 186 - RGB(140, 140, 136):
+  - Pixels: 145,891
+  - Coverage: 4.86%
+  - Area: 145.89 cm²
+  - Paint required: 58.36 ml
+Color 187 - RGB(178, 175, 154):
+  - Pixels: 29,793
+  - Coverage: 0.99%
+  - Area: 29.79 cm²
+  - Paint required: 11.92 ml
+Color 188 - RGB(187, 146, 105):
+  - Pixels: 17,282
+  - Coverage: 0.58%
+  - Area: 17.28 cm²
+  - Paint required: 6.91 ml
+Color 189 - RGB(151, 105, 79):
+  - Pixels: 17,201
+  - Coverage: 0.57%
+  - Area: 17.20 cm²
+  - Paint required: 6.88 ml
+Color 193 - RGB(152, 118, 84):
+  - Pixels: 27,521
+  - Coverage: 0.92%
+  - Area: 27.52 cm²
+  - Paint required: 11.01 ml
+Color 194 - RGB(244, 244, 244):
+  - Pixels: 12,650
+  - Coverage: 0.42%
+  - Area: 12.65 cm²
+  - Paint required: 5.06 ml
+Color 195 - RGB(248, 248, 248):
+  - Pixels: 16,296
+  - Coverage: 0.54%
+  - Area: 16.30 cm²
+  - Paint required: 6.52 ml
+Color 199 - RGB(249, 246, 240):
+  - Pixels: 1,869
+  - Coverage: 0.06%
+  - Area: 1.87 cm²
+  - Paint required: 0.75 ml
+Color 205 - RGB(30, 120, 120):
+  - Pixels: 1,528
+  - Coverage: 0.05%
+  - Area: 1.53 cm²
+  - Paint required: 0.61 ml
+
+Total paint required: 1200.00 ml
+Estimated number of standard spray cans: 3
+(Based on a standard 400ml spray can)

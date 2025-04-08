@@ -1,0 +1,1249 @@
+{
+  "name": "MTN 94 Color Database",
+  "description": "Comprehensive color database for MTN 94 spray paint colors",
+  "last_updated": "2025-04-07",
+  "colors": [
+    {
+      "name": "Titanium White",
+      "code": "RV-9010",
+      "rgb": [255, 255, 255],
+      "category": "White"
+    },
+    {
+      "name": "Bone White",
+      "code": "RV-1013",
+      "rgb": [242, 234, 215],
+      "category": "White"
+    },
+    {
+      "name": "Antarctica White",
+      "code": "RV-9011",
+      "rgb": [240, 240, 240],
+      "category": "White"
+    },
+    {
+      "name": "Silver",
+      "code": "RV-9006",
+      "rgb": [195, 198, 201],
+      "category": "Gray"
+    },
+    {
+      "name": "Plata",
+      "code": "RV-1002",
+      "rgb": [179, 179, 179],
+      "category": "Gray"
+    },
+    {
+      "name": "London Grey",
+      "code": "RV-7037",
+      "rgb": [125, 125, 125],
+      "category": "Gray"
+    },
+    {
+      "name": "Anthracite Grey",
+      "code": "RV-7016",
+      "rgb": [66, 66, 66],
+      "category": "Gray"
+    },
+    {
+      "name": "Black",
+      "code": "RV-9011",
+      "rgb": [0, 0, 0],
+      "category": "Black"
+    },
+    {
+      "name": "Canarias Yellow",
+      "code": "RV-109",
+      "rgb": [255, 241, 0],
+      "category": "Yellow"
+    },
+    {
+      "name": "Party Yellow",
+      "code": "RV-20",
+      "rgb": [255, 222, 0],
+      "category": "Yellow"
+    },
+    {
+      "name": "Ipanema Yellow",
+      "code": "RV-189",
+      "rgb": [255, 196, 0],
+      "category": "Yellow"
+    },
+    {
+      "name": "Yosemite Yellow",
+      "code": "RV-110",
+      "rgb": [255, 212, 60],
+      "category": "Yellow"
+    },
+    {
+      "name": "Babel Green",
+      "code": "RV-111",
+      "rgb": [210, 227, 18],
+      "category": "Green"
+    },
+    {
+      "name": "Mission Green",
+      "code": "RV-112",
+      "rgb": [145, 215, 70],
+      "category": "Green"
+    },
+    {
+      "name": "Dragon Green",
+      "code": "RV-113",
+      "rgb": [0, 191, 37],
+      "category": "Green"
+    },
+    {
+      "name": "Maya Green",
+      "code": "RV-114",
+      "rgb": [0, 165, 114],
+      "category": "Green"
+    },
+    {
+      "name": "Emerald Green",
+      "code": "RV-6026",
+      "rgb": [0, 118, 81],
+      "category": "Green"
+    },
+    {
+      "name": "Evergreen",
+      "code": "RV-6005",
+      "rgb": [5, 69, 33],
+      "category": "Green"
+    },
+    {
+      "name": "Turquoise Green",
+      "code": "RV-6034",
+      "rgb": [48, 136, 124],
+      "category": "Green"
+    },
+    {
+      "name": "Monte Carlo",
+      "code": "RV-115",
+      "rgb": [0, 183, 188],
+      "category": "Blue"
+    },
+    {
+      "name": "Horizon Blue",
+      "code": "RV-116",
+      "rgb": [0, 148, 213],
+      "category": "Blue"
+    },
+    {
+      "name": "Electric Blue",
+      "code": "RV-117",
+      "rgb": [0, 117, 196],
+      "category": "Blue"
+    },
+    {
+      "name": "Liberty Blue",
+      "code": "RV-118",
+      "rgb": [0, 84, 163],
+      "category": "Blue"
+    },
+    {
+      "name": "Ultramarine Blue",
+      "code": "RV-5002",
+      "rgb": [0, 50, 135],
+      "category": "Blue"
+    },
+    {
+      "name": "Navy Blue",
+      "code": "RV-5011",
+      "rgb": [18, 37, 67],
+      "category": "Blue"
+    },
+    {
+      "name": "Venus Violet",
+      "code": "RV-124",
+      "rgb": [178, 115, 177],
+      "category": "Purple"
+    },
+    {
+      "name": "Vivid Violet",
+      "code": "RV-125",
+      "rgb": [155, 79, 150],
+      "category": "Purple"
+    },
+    {
+      "name": "Magic Purple",
+      "code": "RV-126",
+      "rgb": [111, 45, 124],
+      "category": "Purple"
+    },
+    {
+      "name": "Cian",
+      "code": "RV-122",
+      "rgb": [88, 15, 86],
+      "category": "Purple"
+    },
+    {
+      "name": "Erasmus Violet",
+      "code": "RV-4001",
+      "rgb": [127, 48, 103],
+      "category": "Purple"
+    },
+    {
+      "name": "Magenta",
+      "code": "RV-4010",
+      "rgb": [215, 31, 133],
+      "category": "Pink"
+    },
+    {
+      "name": "Andalusia Pink",
+      "code": "RV-127",
+      "rgb": [237, 72, 152],
+      "category": "Pink"
+    },
+    {
+      "name": "Pink",
+      "code": "RV-4003",
+      "rgb": [247, 127, 190],
+      "category": "Pink"
+    },
+    {
+      "name": "Pink Panther",
+      "code": "RV-128",
+      "rgb": [247, 158, 199],
+      "category": "Pink"
+    },
+    {
+      "name": "Fiery Red",
+      "code": "RV-3020",
+      "rgb": [227, 0, 11],
+      "category": "Red"
+    },
+    {
+      "name": "Mars Red",
+      "code": "RV-129",
+      "rgb": [225, 6, 0],
+      "category": "Red"
+    },
+    {
+      "name": "Tornado Red",
+      "code": "RV-3001",
+      "rgb": [179, 0, 22],
+      "category": "Red"
+    },
+    {
+      "name": "Red Wine",
+      "code": "RV-3004",
+      "rgb": [118, 0, 0],
+      "category": "Red"
+    },
+    {
+      "name": "Cherry Red",
+      "code": "RV-134",
+      "rgb": [170, 31, 57],
+      "category": "Red"
+    },
+    {
+      "name": "Geranium",
+      "code": "RV-130",
+      "rgb": [228, 80, 43],
+      "category": "Orange"
+    },
+    {
+      "name": "Vermillion",
+      "code": "RV-131",
+      "rgb": [235, 104, 11],
+      "category": "Orange"
+    },
+    {
+      "name": "Halloween Orange",
+      "code": "RV-2003",
+      "rgb": [226, 115, 0],
+      "category": "Orange"
+    },
+    {
+      "name": "Solar Orange",
+      "code": "RV-50",
+      "rgb": [254, 148, 0],
+      "category": "Orange"
+    },
+    {
+      "name": "Plural Orange",
+      "code": "RV-103",
+      "rgb": [249, 178, 0],
+      "category": "Orange"
+    },
+    {
+      "name": "Fluorescent Yellow",
+      "code": "RV-1021F",
+      "rgb": [255, 249, 0],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Fluorescent Orange",
+      "code": "RV-2004F",
+      "rgb": [255, 145, 0],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Fluorescent Red",
+      "code": "RV-3020F",
+      "rgb": [255, 0, 0],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Fluorescent Fuchsia",
+      "code": "RV-4010F",
+      "rgb": [255, 0, 151],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Fluorescent Violet",
+      "code": "RV-4007F",
+      "rgb": [204, 0, 255],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Fluorescent Blue",
+      "code": "RV-5012F",
+      "rgb": [0, 113, 255],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Fluorescent Green",
+      "code": "RV-6018F",
+      "rgb": [0, 255, 0],
+      "category": "Fluorescent"
+    },
+    {
+      "name": "Safari Brown",
+      "code": "RV-135",
+      "rgb": [200, 177, 139],
+      "category": "Brown"
+    },
+    {
+      "name": "Inca Brown",
+      "code": "RV-136",
+      "rgb": [165, 138, 105],
+      "category": "Brown"
+    },
+    {
+      "name": "Kraft Brown",
+      "code": "RV-137",
+      "rgb": [134, 105, 60],
+      "category": "Brown"
+    },
+    {
+      "name": "Sequoia Brown",
+      "code": "RV-139",
+      "rgb": [91, 61, 32],
+      "category": "Brown"
+    },
+    {
+      "name": "Spectral Yellow",
+      "code": "RV-S9010",
+      "rgb": [255, 255, 0],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Orange",
+      "code": "RV-S9020",
+      "rgb": [255, 165, 0],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Red",
+      "code": "RV-S9030",
+      "rgb": [255, 0, 0],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Violet",
+      "code": "RV-S9040",
+      "rgb": [148, 0, 211],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Blue",
+      "code": "RV-S9050",
+      "rgb": [0, 0, 255],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Green",
+      "code": "RV-S9060",
+      "rgb": [0, 255, 0],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral White",
+      "code": "RV-S9070",
+      "rgb": [255, 255, 255],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Black",
+      "code": "RV-S9080",
+      "rgb": [0, 0, 0],
+      "category": "Spectral"
+    },
+    {
+      "name": "Light Yellow",
+      "code": "RV-1021",
+      "rgb": [255, 237, 120],
+      "category": "Yellow"
+    },
+    {
+      "name": "Sundance",
+      "code": "RV-192",
+      "rgb": [255, 196, 40],
+      "category": "Yellow"
+    },
+    {
+      "name": "Dalai Orange",
+      "code": "RV-102",
+      "rgb": [252, 175, 23],
+      "category": "Orange"
+    },
+    {
+      "name": "Tangerine",
+      "code": "RV-105",
+      "rgb": [245, 134, 52],
+      "category": "Orange"
+    },
+    {
+      "name": "Lava Orange",
+      "code": "RV-106",
+      "rgb": [230, 115, 30],
+      "category": "Orange"
+    },
+    {
+      "name": "Kalani Orange",
+      "code": "RV-2004",
+      "rgb": [236, 124, 38],
+      "category": "Orange"
+    },
+    {
+      "name": "Mars Orange",
+      "code": "RV-107",
+      "rgb": [226, 88, 34],
+      "category": "Orange"
+    },
+    {
+      "name": "Phoenix Orange",
+      "code": "RV-108",
+      "rgb": [219, 77, 41],
+      "category": "Orange"
+    },
+    {
+      "name": "Malta White",
+      "code": "RV-190",
+      "rgb": [245, 242, 230],
+      "category": "White"
+    },
+    {
+      "name": "Marrakech",
+      "code": "RV-138",
+      "rgb": [120, 85, 50],
+      "category": "Brown"
+    },
+    {
+      "name": "Mole",
+      "code": "RV-140",
+      "rgb": [65, 51, 36],
+      "category": "Brown"
+    },
+    {
+      "name": "Chocolate Brown",
+      "code": "RV-8017",
+      "rgb": [45, 33, 27],
+      "category": "Brown"
+    },
+    {
+      "name": "Mango",
+      "code": "RV-104",
+      "rgb": [255, 182, 18],
+      "category": "Orange"
+    },
+    {
+      "name": "Kalahari Orange",
+      "code": "RV-2008",
+      "rgb": [233, 99, 0],
+      "category": "Orange"
+    },
+    {
+      "name": "Fire Orange",
+      "code": "RV-149",
+      "rgb": [234, 91, 12],
+      "category": "Orange"
+    },
+    {
+      "name": "Chianti Red",
+      "code": "RV-3032",
+      "rgb": [125, 12, 36],
+      "category": "Red"
+    },
+    {
+      "name": "Corporate Red",
+      "code": "RV-3027",
+      "rgb": [205, 32, 44],
+      "category": "Red"
+    },
+    {
+      "name": "Ruby Red",
+      "code": "RV-3003",
+      "rgb": [198, 16, 30],
+      "category": "Red"
+    },
+    {
+      "name": "Crimson Red",
+      "code": "RV-3002",
+      "rgb": [204, 0, 20],
+      "category": "Red"
+    },
+    {
+      "name": "Red",
+      "code": "RV-3000",
+      "rgb": [220, 20, 28],
+      "category": "Red"
+    },
+    {
+      "name": "Raspberry Red",
+      "code": "RV-3018",
+      "rgb": [214, 41, 54],
+      "category": "Red"
+    },
+    {
+      "name": "Cardinal Red",
+      "code": "RV-3031",
+      "rgb": [179, 36, 40],
+      "category": "Red"
+    },
+    {
+      "name": "Rosé",
+      "code": "RV-4012",
+      "rgb": [231, 170, 186],
+      "category": "Pink"
+    },
+    {
+      "name": "Cotton Candy",
+      "code": "RV-4009",
+      "rgb": [241, 188, 220],
+      "category": "Pink"
+    },
+    {
+      "name": "Tutti Frutti",
+      "code": "RV-173",
+      "rgb": [253, 173, 196],
+      "category": "Pink"
+    },
+    {
+      "name": "Inti Pink",
+      "code": "RV-172",
+      "rgb": [248, 131, 160],
+      "category": "Pink"
+    },
+    {
+      "name": "Astral Pink",
+      "code": "RV-174",
+      "rgb": [249, 104, 144],
+      "category": "Pink"
+    },
+    {
+      "name": "Sweet Pink",
+      "code": "RV-171",
+      "rgb": [242, 76, 122],
+      "category": "Pink"
+    },
+    {
+      "name": "Erika",
+      "code": "RV-4003",
+      "rgb": [202, 96, 145],
+      "category": "Pink"
+    },
+    {
+      "name": "Azalea",
+      "code": "RV-4006",
+      "rgb": [226, 62, 142],
+      "category": "Pink"
+    },
+    {
+      "name": "Vampiress",
+      "code": "RV-4004",
+      "rgb": [200, 51, 126],
+      "category": "Pink"
+    },
+    {
+      "name": "Karma Violet",
+      "code": "RV-175",
+      "rgb": [208, 77, 129],
+      "category": "Purple"
+    },
+    {
+      "name": "Babylon Purple",
+      "code": "RV-167",
+      "rgb": [192, 84, 142],
+      "category": "Purple"
+    },
+    {
+      "name": "Pimp Violet",
+      "code": "RV-169",
+      "rgb": [174, 78, 134],
+      "category": "Purple"
+    },
+    {
+      "name": "Portland Purple",
+      "code": "RV-170",
+      "rgb": [156, 72, 125],
+      "category": "Purple"
+    },
+    {
+      "name": "Ultraviolet Light",
+      "code": "RV-165",
+      "rgb": [146, 120, 198],
+      "category": "Purple"
+    },
+    {
+      "name": "Bishop Purple",
+      "code": "RV-166",
+      "rgb": [127, 100, 164],
+      "category": "Purple"
+    },
+    {
+      "name": "El Dorado",
+      "code": "RV-164",
+      "rgb": [118, 83, 148],
+      "category": "Purple"
+    },
+    {
+      "name": "Vatican Purple",
+      "code": "RV-4005",
+      "rgb": [89, 53, 115],
+      "category": "Purple"
+    },
+    {
+      "name": "Lavender",
+      "code": "RV-4008",
+      "rgb": [184, 132, 203],
+      "category": "Purple"
+    },
+    {
+      "name": "Buthan Orange",
+      "code": "RV-132",
+      "rgb": [233, 116, 81],
+      "category": "Orange"
+    },
+    {
+      "name": "Poseidon Blue",
+      "code": "RV-5024",
+      "rgb": [5, 95, 177],
+      "category": "Blue"
+    },
+    {
+      "name": "Genesis Blue",
+      "code": "RV-155",
+      "rgb": [62, 80, 181],
+      "category": "Blue"
+    },
+    {
+      "name": "Babylon Blue",
+      "code": "RV-154",
+      "rgb": [75, 105, 190],
+      "category": "Blue"
+    },
+    {
+      "name": "Blue Jeans",
+      "code": "RV-5015",
+      "rgb": [94, 129, 198],
+      "category": "Blue"
+    },
+    {
+      "name": "Oracle Blue",
+      "code": "RV-153",
+      "rgb": [108, 143, 202],
+      "category": "Blue"
+    },
+    {
+      "name": "Blue Pill",
+      "code": "RV-152",
+      "rgb": [126, 159, 209],
+      "category": "Blue"
+    },
+    {
+      "name": "Sky Blue",
+      "code": "RV-5012",
+      "rgb": [111, 179, 231],
+      "category": "Blue"
+    },
+    {
+      "name": "Europa Blue",
+      "code": "RV-151",
+      "rgb": [146, 190, 231],
+      "category": "Blue"
+    },
+    {
+      "name": "Gladiator Blue",
+      "code": "RV-150",
+      "rgb": [163, 200, 231],
+      "category": "Blue"
+    },
+    {
+      "name": "Azzurro Blue",
+      "code": "RV-5025",
+      "rgb": [183, 213, 231],
+      "category": "Blue"
+    },
+    {
+      "name": "Vinca Green",
+      "code": "RV-143",
+      "rgb": [204, 231, 229],
+      "category": "Green"
+    },
+    {
+      "name": "Atlantis Blue",
+      "code": "RV-144",
+      "rgb": [177, 218, 224],
+      "category": "Blue"
+    },
+    {
+      "name": "One Lagoon",
+      "code": "RV-145",
+      "rgb": [137, 205, 215],
+      "category": "Blue"
+    },
+    {
+      "name": "Perseus Blue",
+      "code": "RV-146",
+      "rgb": [112, 188, 202],
+      "category": "Blue"
+    },
+    {
+      "name": "Thalassa Green",
+      "code": "RV-147",
+      "rgb": [76, 168, 180],
+      "category": "Green"
+    },
+    {
+      "name": "Dalai Turquoise",
+      "code": "RV-148",
+      "rgb": [0, 149, 154],
+      "category": "Green"
+    },
+    {
+      "name": "Boston Green",
+      "code": "RV-6027",
+      "rgb": [142, 198, 168],
+      "category": "Green"
+    },
+    {
+      "name": "Martha Green",
+      "code": "RV-6021",
+      "rgb": [108, 183, 139],
+      "category": "Green"
+    },
+    {
+      "name": "Mint Green",
+      "code": "RV-6024",
+      "rgb": [48, 166, 107],
+      "category": "Green"
+    },
+    {
+      "name": "Guacamole Green",
+      "code": "RV-6018",
+      "rgb": [106, 176, 70],
+      "category": "Green"
+    },
+    {
+      "name": "Hulk Green",
+      "code": "RV-6035",
+      "rgb": [70, 159, 51],
+      "category": "Green"
+    },
+    {
+      "name": "Irish Green",
+      "code": "RV-6002",
+      "rgb": [25, 142, 38],
+      "category": "Green"
+    },
+    {
+      "name": "Paloma Grey",
+      "code": "RV-7047",
+      "rgb": [231, 231, 231],
+      "category": "Gray"
+    },
+    {
+      "name": "Siberia",
+      "code": "RV-191",
+      "rgb": [236, 236, 236],
+      "category": "White"
+    },
+    {
+      "name": "Cool Grey",
+      "code": "RV-7040",
+      "rgb": [200, 200, 200],
+      "category": "Gray"
+    },
+    {
+      "name": "Gris Strato",
+      "code": "RV-7042",
+      "rgb": [168, 168, 168],
+      "category": "Gray"
+    },
+    {
+      "name": "Neutral Grey",
+      "code": "RV-7035",
+      "rgb": [146, 146, 146],
+      "category": "Gray"
+    },
+    {
+      "name": "Metropolis Gray",
+      "code": "RV-7046",
+      "rgb": [105, 105, 105],
+      "category": "Gray"
+    },
+    {
+      "name": "Berlin Grey",
+      "code": "RV-7012",
+      "rgb": [86, 86, 86],
+      "category": "Gray"
+    },
+    {
+      "name": "Shadow Grey",
+      "code": "RV-7024",
+      "rgb": [47, 47, 47],
+      "category": "Gray"
+    },
+    {
+      "name": "Night Blue",
+      "code": "RV-5022",
+      "rgb": [11, 23, 50],
+      "category": "Blue"
+    },
+    {
+      "name": "Aubergine",
+      "code": "RV-4007",
+      "rgb": [58, 32, 72],
+      "category": "Purple"
+    },
+    {
+      "name": "Imperial Green",
+      "code": "RV-6009",
+      "rgb": [19, 49, 36],
+      "category": "Green"
+    },
+    {
+      "name": "Lemon Yellow",
+      "code": "RV-1016",
+      "rgb": [255, 252, 121],
+      "category": "Yellow"
+    },
+    {
+      "name": "Poison Green",
+      "code": "RV-6018",
+      "rgb": [175, 239, 95],
+      "category": "Green"
+    },
+    {
+      "name": "100% Cyan",
+      "code": "RV-5019",
+      "rgb": [0, 175, 236],
+      "category": "Blue"
+    },
+    {
+      "name": "Transparent Black",
+      "code": "RV-9011T",
+      "rgb": [30, 30, 30],
+      "category": "Transparent"
+    },
+    {
+      "name": "Transparent Blue",
+      "code": "RV-5010T",
+      "rgb": [30, 30, 120],
+      "category": "Transparent"
+    },
+    {
+      "name": "Transparent Red",
+      "code": "RV-3020T",
+      "rgb": [120, 30, 30],
+      "category": "Transparent"
+    },
+    {
+      "name": "Transparent Yellow",
+      "code": "RV-1021T",
+      "rgb": [120, 120, 30],
+      "category": "Transparent"
+    },
+    {
+      "name": "Transparent Green",
+      "code": "RV-6018T",
+      "rgb": [30, 120, 30],
+      "category": "Transparent"
+    },
+    {
+      "name": "Melon Yellow",
+      "code": "RV-1017",
+      "rgb": [255, 224, 94],
+      "category": "Yellow"
+    },
+    {
+      "name": "Aragon",
+      "code": "RV-1028",
+      "rgb": [255, 212, 94],
+      "category": "Yellow"
+    },
+    {
+      "name": "Mustard",
+      "code": "RV-1005",
+      "rgb": [219, 184, 69],
+      "category": "Yellow"
+    },
+    {
+      "name": "Fresh Yellow",
+      "code": "RV-188",
+      "rgb": [255, 243, 143],
+      "category": "Yellow"
+    },
+    {
+      "name": "Pastel Yellow",
+      "code": "RV-1021P",
+      "rgb": [255, 249, 189],
+      "category": "Pastel"
+    },
+    {
+      "name": "Pastel Orange",
+      "code": "RV-2004P",
+      "rgb": [254, 213, 162],
+      "category": "Pastel"
+    },
+    {
+      "name": "Pastel Red",
+      "code": "RV-3020P",
+      "rgb": [255, 179, 179],
+      "category": "Pastel"
+    },
+    {
+      "name": "Pastel Pink",
+      "code": "RV-4010P",
+      "rgb": [255, 179, 218],
+      "category": "Pastel"
+    },
+    {
+      "name": "Pastel Violet",
+      "code": "RV-4007P",
+      "rgb": [232, 179, 255],
+      "category": "Pastel"
+    },
+    {
+      "name": "Pastel Blue",
+      "code": "RV-5012P",
+      "rgb": [179, 214, 255],
+      "category": "Pastel"
+    },
+    {
+      "name": "Pastel Green",
+      "code": "RV-6018P",
+      "rgb": [179, 255, 179],
+      "category": "Pastel"
+    },
+    {
+      "name": "Gold",
+      "code": "RV-M1",
+      "rgb": [212, 175, 55],
+      "category": "Metallic"
+    },
+    {
+      "name": "Silver Chrome",
+      "code": "RV-M2",
+      "rgb": [192, 192, 192],
+      "category": "Metallic"
+    },
+    {
+      "name": "Copper",
+      "code": "RV-M3",
+      "rgb": [184, 115, 51],
+      "category": "Metallic"
+    },
+    {
+      "name": "Metallic Blue",
+      "code": "RV-M4",
+      "rgb": [70, 130, 180],
+      "category": "Metallic"
+    },
+    {
+      "name": "Metallic Green",
+      "code": "RV-M5",
+      "rgb": [60, 179, 113],
+      "category": "Metallic"
+    },
+    {
+      "name": "Metallic Red",
+      "code": "RV-M6",
+      "rgb": [178, 34, 34],
+      "category": "Metallic"
+    },
+    {
+      "name": "Metallic Purple",
+      "code": "RV-M7",
+      "rgb": [128, 0, 128],
+      "category": "Metallic"
+    },
+    {
+      "name": "Paris Green",
+      "code": "RV-6000",
+      "rgb": [181, 234, 215],
+      "category": "Green"
+    },
+    {
+      "name": "Aladdin Green",
+      "code": "RV-6001",
+      "rgb": [147, 220, 203],
+      "category": "Green"
+    },
+    {
+      "name": "Aruba Green",
+      "code": "RV-6037",
+      "rgb": [0, 139, 139],
+      "category": "Green"
+    },
+    {
+      "name": "Andromeda Green",
+      "code": "RV-6029",
+      "rgb": [0, 112, 74],
+      "category": "Green"
+    },
+    {
+      "name": "Eden Green",
+      "code": "RV-6025",
+      "rgb": [61, 131, 63],
+      "category": "Green"
+    },
+    {
+      "name": "Elettrico Green",
+      "code": "RV-605",
+      "rgb": [147, 197, 23],
+      "category": "Green"
+    },
+    {
+      "name": "Acid Green",
+      "code": "RV-604",
+      "rgb": [176, 191, 26],
+      "category": "Green"
+    },
+    {
+      "name": "Pistachio Green",
+      "code": "RV-603",
+      "rgb": [209, 226, 49],
+      "category": "Green"
+    },
+    {
+      "name": "Egg Yellow",
+      "code": "RV-602",
+      "rgb": [233, 233, 79],
+      "category": "Yellow"
+    },
+    {
+      "name": "Argo",
+      "code": "RV-601",
+      "rgb": [249, 236, 76],
+      "category": "Yellow"
+    },
+    {
+      "name": "Spectral Ethereal Yellow",
+      "code": "RV-SEY",
+      "rgb": [254, 254, 127],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Calima Orange",
+      "code": "RV-SCO",
+      "rgb": [254, 190, 127],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Soul Red",
+      "code": "RV-SSR",
+      "rgb": [254, 127, 127],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Judea Brown",
+      "code": "RV-SJB",
+      "rgb": [165, 100, 63],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Aura Violet",
+      "code": "RV-SAV",
+      "rgb": [203, 127, 254],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Atmosphere Blue",
+      "code": "RV-SAB",
+      "rgb": [127, 180, 254],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Breeze Green",
+      "code": "RV-SBG",
+      "rgb": [127, 254, 180],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Air White",
+      "code": "RV-SAW",
+      "rgb": [240, 255, 240],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Smoke Grey",
+      "code": "RV-SSG",
+      "rgb": [180, 180, 180],
+      "category": "Spectral"
+    },
+    {
+      "name": "Spectral Shadow Black",
+      "code": "RV-SSB",
+      "rgb": [20, 20, 20],
+      "category": "Spectral"
+    },
+    {
+      "name": "Saturn Yellow",
+      "code": "RV-1018",
+      "rgb": [255, 215, 0],
+      "category": "Yellow"
+    },
+    {
+      "name": "Yellow Cream",
+      "code": "RV-1015",
+      "rgb": [255, 248, 220],
+      "category": "Yellow"
+    },
+    {
+      "name": "Vanilla",
+      "code": "RV-186",
+      "rgb": [248, 246, 219],
+      "category": "White"
+    },
+    {
+      "name": "Clydes Grey",
+      "code": "RV-7039",
+      "rgb": [140, 140, 136],
+      "category": "Gray"
+    },
+    {
+      "name": "Stone Grey",
+      "code": "RV-7032",
+      "rgb": [178, 175, 154],
+      "category": "Gray"
+    },
+    {
+      "name": "Café Olé",
+      "code": "RV-8025",
+      "rgb": [187, 146, 105],
+      "category": "Brown"
+    },
+    {
+      "name": "Nut Brown",
+      "code": "RV-8011",
+      "rgb": [151, 105, 79],
+      "category": "Brown"
+    },
+    {
+      "name": "Penelope Pink",
+      "code": "RV-4002",
+      "rgb": [255, 204, 204],
+      "category": "Pink"
+    },
+    {
+      "name": "Chewing Gum",
+      "code": "RV-4001",
+      "rgb": [255, 182, 193],
+      "category": "Pink"
+    },
+    {
+      "name": "Telemagenta",
+      "code": "RV-4011",
+      "rgb": [255, 105, 180],
+      "category": "Pink"
+    },
+    {
+      "name": "Isabella Brown",
+      "code": "RV-8001",
+      "rgb": [152, 118, 84],
+      "category": "Brown"
+    },
+    {
+      "name": "Signal White",
+      "code": "RV-9003",
+      "rgb": [244, 244, 244],
+      "category": "White"
+    },
+    {
+      "name": "Traffic White",
+      "code": "RV-9016",
+      "rgb": [248, 248, 248],
+      "category": "White"
+    },
+    {
+      "name": "Ultra Blue",
+      "code": "RV-5015",
+      "rgb": [0, 95, 191],
+      "category": "Blue"
+    },
+    {
+      "name": "Traffic Blue",
+      "code": "RV-5017",
+      "rgb": [0, 103, 149],
+      "category": "Blue"
+    },
+    {
+      "name": "Diving Blue",
+      "code": "RV-5018",
+      "rgb": [0, 129, 171],
+      "category": "Blue"
+    },
+    {
+      "name": "Pure White",
+      "code": "RV-9001",
+      "rgb": [249, 246, 240],
+      "category": "White"
+    },
+    {
+      "name": "Cream",
+      "code": "RV-9001",
+      "rgb": [250, 244, 227],
+      "category": "White"
+    },
+    {
+      "name": "Sangria",
+      "code": "RV-3005",
+      "rgb": [94, 33, 41],
+      "category": "Red"
+    },
+    {
+      "name": "Burgundy",
+      "code": "RV-3007",
+      "rgb": [108, 36, 51],
+      "category": "Red"
+    },
+    {
+      "name": "Carmine",
+      "code": "RV-3008",
+      "rgb": [138, 42, 43],
+      "category": "Red"
+    },
+    {
+      "name": "Brick Orange",
+      "code": "RV-133",
+      "rgb": [183, 65, 54],
+      "category": "Orange"
+    },
+    {
+      "name": "Transparent Cyan",
+      "code": "RV-TC",
+      "rgb": [30, 120, 120],
+      "category": "Transparent"
+    },
+    {
+      "name": "Transparent Fuchsia",
+      "code": "RV-TF",
+      "rgb": [120, 30, 120],
+      "category": "Transparent"
+    }
+  ]
+}

@@ -7,16 +7,11 @@
     "output_instructions": "painting_instructions.json",
     "quantization_method": "kmeans",
     "dithering": false,
-    "available_colors": [
-      [0, 0, 0],
-      [255, 0, 0],
-      [0, 0, 255],
-      [0, 255, 0],
-      [255, 255, 0],
-      [255, 0, 255],
-      [0, 255, 255],
-      [255, 255, 255]
-    ],
+    "max_colors": 12,
+    "robot_capacity": 6,
+    "color_selection": "auto",
+    "color_database": "data/mtn94_colors.json",
+    "available_colors": [],
     "quantization_options": {
       "euclidean": {
         "description": "Basic color matching using Euclidean distance"
@@ -36,7 +31,10 @@
   "visualization": {
     "instructions_file": "painting_instructions.json",
     "output_video": "painting_simulation.mp4",
-    "fps": 15
+    "fps": 30,
+    "video_duration": 60,
+    "resolution_scale": 0.5,
+    "video_quality": 80
   },
   "hardware": {
     "left_stepper_port": "COM3",
@@ -45,6 +43,8 @@
     "wall_mount_height": 2000,
     "wall_mount_width": 3000,
     "steps_per_mm": 10,
-    "max_speed": 1000
+    "max_speed": 1000,
+    "home_position": [0, 0],
+    "color_change_position": [0, 2000]
   }
 }
