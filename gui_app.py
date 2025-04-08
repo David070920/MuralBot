@@ -92,7 +92,7 @@ class AdvancedSettingsDialog:
         optimize_check = ttk.Checkbutton(main_frame, text="Optimize paths to minimize travel distance",
                                         variable=self.optimize_var)
         optimize_check.grid(column=0, row=7, columnspan=2, sticky=tk.W, padx=5, pady=5)
-        
+
         # Buttons frame
         buttons_frame = ttk.Frame(main_frame)
         buttons_frame.grid(column=0, row=8, columnspan=3, pady=(20, 0))
@@ -111,7 +111,8 @@ class AdvancedSettingsDialog:
             'dithering_strength': self.strength_var.get(),
             'fill_pattern': self.pattern_var.get(),
             'fill_angle': self.angle_var.get(),
-            'optimize_paths': self.optimize_var.get()
+            'optimize_paths': self.optimize_var.get(),
+            'fast_mode': self.settings.get('fast_mode', True)
         }
         self.window.destroy()
         
@@ -182,7 +183,8 @@ class GUIApp:
             'dithering_strength': 1.0,
             'fill_pattern': img_settings.get('fill_pattern', 'zigzag'),
             'fill_angle': img_settings.get('fill_angle', 45),
-            'optimize_paths': True
+            'optimize_paths': True,
+            'fast_mode': True
         }
         
     def run(self):
@@ -350,7 +352,12 @@ class GUIApp:
         self.enable_paths_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(settings_frame, text="Enable Path Generation",
                         variable=self.enable_paths_var).grid(row=9, column=0, columnspan=2, sticky="w", padx=5, pady=5)
-        
+
+        # Fast dithering mode checkbox
+        self.fast_mode_var = tk.BooleanVar(value=self.advanced_settings.get('fast_mode', True))
+        ttk.Checkbutton(settings_frame, text="Fast Dithering Mode (approximate, faster)",
+                        variable=self.fast_mode_var).grid(row=10, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+
         # Process button
         process_button = ttk.Button(step2_frame, text="Process Image", 
                                   command=self.process_image)
@@ -424,6 +431,7 @@ class GUIApp:
             fill_pattern = self.fill_pattern_var.get()
             fill_angle = int(self.fill_angle_var.get())
             enable_paths = self.enable_paths_var.get()
+            fast_mode = self.fast_mode_var.get()
 
             # Create generator with current settings
             generator = MuralInstructionGenerator(
@@ -436,7 +444,8 @@ class GUIApp:
                 max_colors=self.max_colors,
                 robot_capacity=self.robot_capacity,
                 fill_pattern=fill_pattern,
-                fill_angle=fill_angle
+                fill_angle=fill_angle,
+                fast_mode=fast_mode
             )
             
             output_path = os.path.join(self.painting_folder, self.output_instructions)

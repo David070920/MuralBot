@@ -23,7 +23,7 @@ from advanced_algorithms import apply_dithering, generate_fill_pattern, optimize
 class MuralInstructionGenerator:
     def __init__(self, wall_width, wall_height, available_colors=None, resolution_mm=5, 
                  quantization_method="euclidean", dithering="none", dithering_strength=1.0, max_colors=30, 
-                 robot_capacity=6, color_selection="auto", fill_pattern="zigzag", fill_angle=0):
+                 robot_capacity=6, color_selection="auto", fill_pattern="zigzag", fill_angle=0, fast_mode=True):
         """
         Initialize the mural painting instruction generator.
         
@@ -40,6 +40,7 @@ class MuralInstructionGenerator:
             color_selection: Method for color selection ("auto" or "manual")
             fill_pattern: Pattern for filling regions ("zigzag", "concentric", "spiral", or "dots")
             fill_angle: Angle for directional patterns in degrees
+            fast_mode: Use fast approximate dithering (default True)
         """
         self.wall_width = wall_width
         self.wall_height = wall_height
@@ -55,6 +56,7 @@ class MuralInstructionGenerator:
         self.optimized_color_groups = []  # Will store grouped colors for robot capacity
         self.fill_pattern = fill_pattern  # Fill pattern type
         self.fill_angle = fill_angle  # Angle for directional fill patterns
+        self.fast_mode = fast_mode  # Use fast approximate dithering
         
         # Load the MTN94 color database by default
         self.available_colors = self._load_mtn94_colors() if available_colors is None else available_colors
@@ -155,7 +157,8 @@ class MuralInstructionGenerator:
                 self.available_colors, 
                 color_indices,
                 method=self.dithering,
-                strength=self.dithering_strength
+                strength=self.dithering_strength,
+                fast_mode=self.fast_mode
             )
             
         # Calculate estimated paint usage
