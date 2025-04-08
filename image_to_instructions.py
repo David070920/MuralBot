@@ -957,7 +957,8 @@ class MuralInstructionGenerator:
         
         # Find optimal colors using K-means clustering
         print("Analyzing image colors using K-means clustering...")
-        num_clusters = min(self.max_colors, 30)  # Cap at 30 for practical reasons
+        # Use self.max_colors directly instead of capping at 30
+        num_clusters = self.max_colors
         
         # Run K-means to find dominant colors
         kmeans = KMeans(n_clusters=num_clusters, n_init=10, random_state=42)
@@ -1039,8 +1040,16 @@ class MuralInstructionGenerator:
         print("Step 1: Loading image...")
         image = self.load_image(image_path)
         
+        # If using auto color selection, analyze the image and select optimal colors first
+        if self.color_selection == "auto":
+            print("Step 2: Selecting optimal colors...")
+            image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            optimal_colors = self.select_optimal_colors(image_rgb)
+            # Important: Update the available colors to ONLY use the optimal selection
+            self.available_colors = optimal_colors
+        
         # Quantize image to available colors
-        print("Step 2: Matching to available colors...")
+        print("Step 3: Matching to available colors...")
         quantized_image, color_indices = self.quantize_to_available_colors(image)
         
         # Print paint usage report
@@ -1049,26 +1058,26 @@ class MuralInstructionGenerator:
         print()
         
         # Find color regions
-        print("Step 3: Finding color regions...")
+        print("Step 4: Finding color regions...")
         color_regions = self.find_color_regions(color_indices)
         
         # Generate paths
-        print("Step 4: Generating paths...")
+        print("Step 5: Generating paths...")
         paths = self.generate_paths(color_regions)
         
         # Optimize paths
-        print("Step 5: Optimizing paths...")
+        print("Step 6: Optimizing paths...")
         optimized_paths = self.optimize_paths(paths)
         
         # Group colors by robot capacity
-        print("Step 6: Grouping colors by robot capacity...")
+        print("Step 7: Grouping colors by robot capacity...")
         self.group_colors_by_robot_capacity(color_indices)
         
         # Generate optimized instructions
-        print("Step 7: Generating optimized instructions...")
+        print("Step 8: Generating optimized instructions...")
         instructions = self.generate_optimized_instructions(optimized_paths)
         
-        # Save instructions to JSON if output path is provided
+        # Save instructions to JSON if output_path is provided
         if output_path:
             # If output_path is not an absolute path, save to the painting folder
             if not os.path.isabs(output_path):
