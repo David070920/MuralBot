@@ -100,7 +100,13 @@ class MuralInstructionGenerator:
     
     def load_image(self, image_path):
         """Load and resize image to fit the wall dimensions."""
+        import os
+        
         # Load image
+        if not os.path.exists(image_path):
+            print(f"Error: Image file '{image_path}' does not exist.")
+            return None, None
+        
         img = cv2.imread(image_path)
         if img is None:
             raise FileNotFoundError(f"Could not load image from {image_path}")
@@ -989,6 +995,8 @@ class MuralInstructionGenerator:
         # Load and resize image
         print("Step 1: Loading image...")
         image = self.load_image(image_path)
+        if image is None or (isinstance(image, tuple) and any(i is None for i in image)):
+            raise ValueError(f"Failed to load image from {image_path}. Please check the file path.")
         
         # If using auto color selection, analyze the image and select optimal colors first
         if self.color_selection == "auto":
@@ -1029,23 +1037,47 @@ class MuralInstructionGenerator:
         
         # Save instructions to JSON if output_path is provided
         if output_path:
-            # If output_path is not an absolute path, save to the painting folder
-            if not os.path.isabs(output_path):
-                output_path = os.path.join(painting_folder, output_path)
-                
+            # Always save inside the painting folder, regardless of user input
+            painting_folder = os.path.join(os.path.dirname(__file__), "painting")
+            os.makedirs(painting_folder, exist_ok=True)
+
+            output_filename = os.path.basename(output_path)
+            output_path = os.path.join(painting_folder, output_filename)
+            output_path = os.path.normpath(output_path)
+            
+            def convert_to_serializable(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_to_serializable(i) for i in obj]
+                elif isinstance(obj, tuple):
+                    return [convert_to_serializable(i) for i in obj]
+                elif isinstance(obj, (np.integer, np.int64, np.int32)):
+                    return int(obj)
+                elif isinstance(obj, (np.floating, np.float64, np.float32)):
+                    return float(obj)
+                else:
+                    return obj
+
+            serializable_data = convert_to_serializable({
+                "wall_width": self.wall_width,
+                "wall_height": self.wall_height,
+                "colors": self.available_colors,
+                "instructions": instructions,
+                "paint_usage": self.paint_usage
+            })
+
             with open(output_path, 'w') as f:
-                json.dump({
-                    "wall_width": self.wall_width,
-                    "wall_height": self.wall_height,
-                    "colors": self.available_colors,
-                    "instructions": instructions,
-                    "paint_usage": self.paint_usage
-                }, f, indent=2)
+                json.dump(serializable_data, f, indent=2)
             print(f"Instructions saved to {output_path}")
         
         # Also save the quantized image for reference
+        painting_folder = os.path.join(os.path.dirname(__file__), "painting")
+        os.makedirs(painting_folder, exist_ok=True)
+
         preview_path = os.path.join(painting_folder, "quantized_preview.jpg")
         cv2.imwrite(preview_path, quantized_image)
+        return instructions, quantized_image
     def _quantize_adaptive_kmeans(self, image_rgb):
         """Adaptive K-means quantization with automatic cluster count selection."""
         from sklearn.cluster import KMeans
@@ -1131,6 +1163,9 @@ class MuralInstructionGenerator:
         print(f"Preview image saved as '{preview_path}'")
         
         # Save paint usage report to a text file
+        painting_folder = os.path.join(os.path.dirname(__file__), "painting")
+        os.makedirs(painting_folder, exist_ok=True)
+
         usage_report_path = os.path.join(painting_folder, "paint_usage_report.txt")
         with open(usage_report_path, 'w') as f:
             f.write(self.get_paint_usage_report())

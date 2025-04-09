@@ -121,12 +121,18 @@ class ConsoleApp:
         
         choice = input("Process the image now? (Y/n): ").strip().lower()
         output_path = os.path.join(self.painting_folder, self.output_instructions)
+        output_path = os.path.normpath(output_path)
         
         if not choice or choice == 'y':
             print("\nProcessing image...")
             instructions, quantized_image = self.instruction_generator.process_image(
                 self.input_image, output_path)
             print(f"Instructions saved to {output_path}")
+            
+            # Verify the instructions file exists
+            if not os.path.exists(output_path):
+                print(f"Error: Instructions file was not created at {output_path}")
+                return None
             
             # Show paint usage report
             print("\nPaint Usage Report:")

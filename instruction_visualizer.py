@@ -82,6 +82,11 @@ class MuralVisualizer:
             Numpy array representing the preview image
         """
         try:
+            # Normalize and check instructions file path
+            instructions_file = os.path.normpath(instructions_file)
+            if not os.path.exists(instructions_file):
+                print(f"Error: Instructions file '{instructions_file}' does not exist.")
+                return None
             # Load instructions
             with open(instructions_file, 'r') as f:
                 data = json.load(f)
@@ -155,6 +160,11 @@ class MuralVisualizer:
             instructions_file: Path to instructions JSON file
         """
         try:
+            # Normalize and check instructions file path
+            instructions_file = os.path.normpath(instructions_file)
+            if not os.path.exists(instructions_file):
+                print(f"Error: Instructions file '{instructions_file}' does not exist.")
+                return False
             # Load instructions
             with open(instructions_file, 'r') as f:
                 data = json.load(f)
@@ -318,55 +328,59 @@ class MuralVisualizer:
             frame_count = 0
             
             # Process instructions in chunks
-            for i in range(0, len(instructions), instructions_per_frame):
-                # Process a chunk of instructions
-                chunk = instructions[i:i + instructions_per_frame]
-                
+            from concurrent.futures import ThreadPoolExecutor, as_completed
+            
+            def process_chunk(chunk, canvas_snapshot, current_pos, spray_active, current_color):
+                canvas_local = canvas_snapshot.copy()
+                pos = current_pos
+                spray = spray_active
+                color = current_color
+            
                 for instruction in chunk:
                     instruction_type = instruction.get('type')
-                    
+            
                     if instruction_type == 'color':
                         rgb = instruction.get('rgb', [0, 0, 0])
-                        current_color = tuple(rgb)
-                        
+                        color = tuple(int(round(c)) for c in rgb)
+            
                     elif instruction_type == 'move':
                         x = int(instruction.get('x', 0) * self.resolution_scale)
                         y = int(instruction.get('y', 0) * self.resolution_scale)
-                        spray = instruction.get('spray', False)
-                        
-                        if spray and spray_active:
-                            # Draw a line of the current color
-                            cv2.line(canvas, 
-                                    (int(current_pos[0]), int(current_pos[1])),
-                                    (x, y),
-                                    current_color,
-                                    thickness=max(1, int(3 * self.resolution_scale)))
-                        
-                        # Update positions
-                        current_pos = (x, y)
-                        self.robot_pos = (x, y)
-                        
+                        spray_flag = instruction.get('spray', False)
+            
+                        if spray_flag and spray:
+                            cv2.line(canvas_local,
+                                     (int(pos[0]), int(pos[1])),
+                                     (x, y),
+                                     color,
+                                     thickness=max(1, int(3 * self.resolution_scale)))
+            
+                        pos = (x, y)
+            
                     elif instruction_type == 'spray':
-                        spray_active = instruction.get('state', False)
-                        
+                        spray = instruction.get('state', False)
+            
                     elif instruction_type == 'load_colors':
-                        # Update loaded colors
-                        self.loaded_colors = [c['index'] for c in instruction.get('colors', [])]
-                        
-                # Create a copy of the canvas for this frame
-                frame = canvas.copy()
-                
-                # Draw the robot position
-                self._draw_robot_on_frame(frame, self.robot_pos, spray_active, current_color)
-                
-                # Add frame to buffer
-                self.frame_buffer.append(frame)
-                frame_count += 1
-                
-                # Update progress bar every 10 frames
-                if frame_count % 10 == 0:
-                    percent = min(100, int((frame_count / total_frames) * 100))
-                    print(f"\rGenerating frames: {percent}% complete", end="")
+                        pass  # skip
+            
+                frame = canvas_local.copy()
+                self._draw_robot_on_frame(frame, pos, spray, color)
+                return frame
+            
+            chunks = []
+            for i in range(0, len(instructions), instructions_per_frame):
+                chunk = instructions[i:i + instructions_per_frame]
+                chunks.append(chunk)
+            
+            with ThreadPoolExecutor() as executor:
+                futures = []
+                for chunk in chunks:
+                    # Pass a snapshot of the canvas for each chunk
+                    futures.append(executor.submit(process_chunk, chunk, canvas.copy(), current_pos, spray_active, current_color))
+            
+                for idx, future in enumerate(tqdm(as_completed(futures), total=len(futures), desc="Generating animation frames (parallel)")):
+                    frame = future.result()
+                    self.frame_buffer.append(frame)
             
             print("\nGenerated", len(self.frame_buffer), "animation frames")
             
