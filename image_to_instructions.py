@@ -588,143 +588,7 @@ class MuralInstructionGenerator:
                 
             return optimized_paths
     
-    def generate_instructions(self, all_paths):
-        """Generate a sequence of painting instructions."""
-        instructions = []
-        
-        # Start with a "home" instruction
-        instructions.append({
-            "type": "home",
-            "message": "Moving to home position"
-        })
-        
-        # For each color
-        for color_idx, paths in all_paths.items():
-            # Change to this color
-            instructions.append({
-                "type": "color",
-                "index": color_idx,
-                "rgb": self.available_colors[color_idx],
-                "message": f"Changing to color {color_idx} - RGB{self.available_colors[color_idx]}"
-            })
-            
-            # For each path with this color
-            for path in paths:
-                if not path:
-                    continue
-                    
-                # Move to the first point with spray off
-                first_point = path[0]
-                instructions.append({
-                    "type": "move",
-                    "x": first_point[0],
-                    "y": first_point[1],
-                    "spray": False,
-                    "message": f"Moving to ({first_point[0]}, {first_point[1]})"
-                })
-                
-                # Turn spray on
-                instructions.append({
-                    "type": "spray",
-                    "state": True,
-                    "message": "Starting to spray"
-                })
-                
-                # Follow the path with spray on
-                for point in path[1:]:
-                    instructions.append({
-                        "type": "move",
-                        "x": point[0],
-                        "y": point[1],
-                        "spray": True,
-                        "message": f"Moving to ({point[0]}, {point[1]}) while spraying"
-                    })
-                
-                # Turn spray off
-                instructions.append({
-                    "type": "spray",
-                    "state": False,
-                    "message": "Stopping spray"
-                })
-        
-        # End with a "home" instruction
-        instructions.append({
-            "type": "home",
-            "message": "Returning to home position"
-        })
-        
-        return instructions
     
-    def group_colors_by_robot_capacity(self, color_indices):
-        """
-        Group colors into batches that can be painted simultaneously by the robot.
-        Colors are grouped by usage frequency and spatial proximity.
-        """
-        # Get color usage statistics
-        color_stats = {}
-        for color_idx in range(len(self.available_colors)):
-            pixel_count = np.sum(color_indices == color_idx)
-            if pixel_count > 0:
-                color_stats[color_idx] = {
-                    'count': int(pixel_count),
-                    'percentage': (pixel_count / color_indices.size) * 100
-                }
-        
-        # Sort colors by usage (most used first)
-        sorted_colors = sorted(color_stats.keys(), key=lambda x: color_stats[x]['count'], reverse=True)
-        
-        # Calculate color proximity matrix (how close colors tend to be to each other)
-        proximity_matrix = self._calculate_color_proximity(color_indices, sorted_colors)
-        
-        # Group colors into batches that fit robot capacity
-        color_groups = []
-        remaining_colors = sorted_colors.copy()
-        
-        while remaining_colors:
-            current_group = []
-            
-            # Start with the most used remaining color
-            if remaining_colors:
-                most_used = remaining_colors[0]
-                current_group.append(most_used)
-                remaining_colors.remove(most_used)
-            
-            # Fill the group with colors that are most proximate to existing group colors
-            while len(current_group) < self.robot_capacity and remaining_colors:
-                best_score = float('-inf')
-                best_color = None
-                
-                for color in remaining_colors:
-                    # Calculate proximity score to current group
-                    score = 0
-                    for group_color in current_group:
-                        score += proximity_matrix.get((min(color, group_color), max(color, group_color)), 0)
-                    
-                    # Also consider color usage
-                    usage_weight = 0.3  # Weight for usage vs. proximity
-                    score += usage_weight * color_stats[color]['percentage']
-                    
-                    if score > best_score:
-                        best_score = score
-                        best_color = color
-                
-                if best_color is not None:
-                    current_group.append(best_color)
-                    remaining_colors.remove(best_color)
-                else:
-                    break
-            
-            # Add the group if not empty
-            if current_group:
-                color_groups.append(current_group)
-        
-        print(f"Grouped {len(sorted_colors)} colors into {len(color_groups)} batches for the robot")
-        for i, group in enumerate(color_groups):
-            print(f"  Batch {i+1}: Colors {group}")
-        
-        # Store the optimized groups
-        self.optimized_color_groups = color_groups
-        return color_groups
     
     def _calculate_color_proximity(self, color_indices, color_list):
         """
@@ -764,106 +628,6 @@ class MuralInstructionGenerator:
         
         return proximity
     
-    def generate_optimized_instructions(self, all_paths):
-        """
-        Generate painting instructions optimized for the robot's limited color capacity.
-        Takes into account the need to visit the color change position when switching between color groups.
-        """
-        if not self.optimized_color_groups:
-            print("Warning: Color groups not set. Running automatic color grouping.")
-            # This shouldn't happen normally, but just in case
-            # We'll need some dummy color indices for this
-            dummy_indices = np.zeros((100, 100), dtype=int)
-            for color_idx in all_paths.keys():
-                dummy_indices[color_idx, color_idx] = 1
-            self.group_colors_by_robot_capacity(dummy_indices)
-        
-        instructions = []
-        
-        # Start with a "home" instruction
-        instructions.append({
-            "type": "home",
-            "message": "Moving to home position"
-        })
-        
-        # For each color group
-        for group_idx, color_group in enumerate(self.optimized_color_groups):
-            # Move to color change position
-            instructions.append({
-                "type": "move",
-                "x": self.color_change_position[0],
-                "y": self.color_change_position[1],
-                "spray": False,
-                "message": f"Moving to color change position to load color group {group_idx+1}"
-            })
-            
-            # Load colors for this group
-            instructions.append({
-                "type": "load_colors",
-                "colors": [{"index": color_idx, "rgb": self.available_colors[color_idx]} for color_idx in color_group],
-                "message": f"Loading colors for group {group_idx+1}: {color_group}"
-            })
-            
-            # Now paint with each color in this group
-            for color_idx in color_group:
-                # Skip if color has no paths
-                if color_idx not in all_paths:
-                    continue
-                    
-                # Change to this color
-                instructions.append({
-                    "type": "color",
-                    "index": color_idx,
-                    "rgb": self.available_colors[color_idx],
-                    "message": f"Changing to color {color_idx} - RGB{self.available_colors[color_idx]}"
-                })
-                
-                # For each path with this color
-                for path in all_paths[color_idx]:
-                    if not path:
-                        continue
-                        
-                    # Move to the first point with spray off
-                    first_point = path[0]
-                    instructions.append({
-                        "type": "move",
-                        "x": first_point[0],
-                        "y": first_point[1],
-                        "spray": False,
-                        "message": f"Moving to ({first_point[0]}, {first_point[1]})"
-                    })
-                    
-                    # Turn spray on
-                    instructions.append({
-                        "type": "spray",
-                        "state": True,
-                        "message": "Starting to spray"
-                    })
-                    
-                    # Follow the path with spray on
-                    for point in path[1:]:
-                        instructions.append({
-                            "type": "move",
-                            "x": point[0],
-                            "y": point[1],
-                            "spray": True,
-                            "message": f"Moving to ({point[0]}, {point[1]}) while spraying"
-                        })
-                    
-                    # Turn spray off
-                    instructions.append({
-                        "type": "spray",
-                        "state": False,
-                        "message": "Stopping spray"
-                    })
-        
-        # End with a "home" instruction
-        instructions.append({
-            "type": "home",
-            "message": "Returning to home position"
-        })
-        
-        return instructions
 
     def select_optimal_colors(self, image_rgb):
         """
@@ -1027,13 +791,9 @@ class MuralInstructionGenerator:
         print("Step 6: Optimizing paths...")
         optimized_paths = self.optimize_paths(paths)
         
-        # Group colors by robot capacity
-        print("Step 7: Grouping colors by robot capacity...")
-        self.group_colors_by_robot_capacity(color_indices)
-        
-        # Generate optimized instructions
-        print("Step 8: Generating optimized instructions...")
-        instructions = self.generate_optimized_instructions(optimized_paths)
+        # Generate dynamic color switching instructions
+        print("Step 7: Generating dynamic color switching instructions...")
+        instructions = self.generate_dynamic_color_instructions(optimized_paths)
         
         # Save instructions to JSON if output_path is provided
         if output_path:
@@ -1171,6 +931,158 @@ class MuralInstructionGenerator:
             f.write(self.get_paint_usage_report())
         print(f"Paint usage report saved as '{usage_report_path}'")
         
+    def generate_dynamic_color_instructions(self, all_paths):
+        """Generate painting instructions allowing dynamic color switching."""
+        instructions = []
+        instructions.append({
+            "type": "home",
+            "message": "Moving to home position"
+        })
+        # Collect all paths with color info
+        path_entries = []
+        for color_idx, paths in all_paths.items():
+            for path in paths:
+                if path:
+                    start_point = path[0]
+                    path_entries.append({
+                        "color_idx": color_idx,
+                        "path": path,
+                        "start": start_point
+                    })
+        # Sort paths by starting point proximity (simple y,x sort)
+        path_entries.sort(key=lambda e: (e['start'][1], e['start'][0]))
+        current_color = None
+        for entry in path_entries:
+            color_idx = entry['color_idx']
+            path = entry['path']
+            # Switch color if needed
+            if color_idx != current_color:
+                instructions.append({
+                    "type": "move",
+                    "x": self.color_change_position[0],
+                    "y": self.color_change_position[1],
+                    "spray": False,
+                    "message": "Moving to color change position"
+                })
+                instructions.append({
+                    "type": "color",
+                    "index": color_idx,
+                    "rgb": self.available_colors[color_idx],
+                    "message": "Changing to color {} - RGB{}".format(color_idx, self.available_colors[color_idx])
+                })
+                current_color = color_idx
+            # Move to start point with spray off
+            first_point = path[0]
+            instructions.append({
+                "type": "move",
+                "x": first_point[0],
+                "y": first_point[1],
+                "spray": False,
+                "message": "Moving to ({}, {})".format(first_point[0], first_point[1])
+            })
+            # Start spraying
+            instructions.append({
+                "type": "spray",
+                "state": True,
+                "message": "Starting to spray"
+            })
+            # Follow path
+            for point in path[1:]:
+                instructions.append({
+                    "type": "move",
+                    "x": point[0],
+                    "y": point[1],
+                    "spray": True,
+                    "message": "Moving to ({}, {}) while spraying".format(point[0], point[1])
+                })
+            # Stop spraying
+            instructions.append({
+                "type": "spray",
+                "state": False,
+                "message": "Stopping spray"
+            })
+        instructions.append({
+            "type": "home",
+            "message": "Returning to home position"
+        })
+        return instructions
+
+    def generate_dynamic_color_instructions(self, all_paths):
+        """Generate painting instructions allowing dynamic color switching."""
+        instructions = []
+        instructions.append({
+            "type": "home",
+            "message": "Moving to home position"
+        })
+        # Collect all paths with color info
+        path_entries = []
+        for color_idx, paths in all_paths.items():
+            for path in paths:
+                if path:
+                    start_point = path[0]
+                    path_entries.append({
+                        "color_idx": color_idx,
+                        "path": path,
+                        "start": start_point
+                    })
+        # Sort paths by starting point proximity (simple y,x sort)
+        path_entries.sort(key=lambda e: (e['start'][1], e['start'][0]))
+        current_color = None
+        for entry in path_entries:
+            color_idx = entry['color_idx']
+            path = entry['path']
+            # Switch color if needed
+            if color_idx != current_color:
+                instructions.append({
+                    "type": "move",
+                    "x": self.color_change_position[0],
+                    "y": self.color_change_position[1],
+                    "spray": False,
+                    "message": "Moving to color change position"
+                })
+                instructions.append({
+                    "type": "color",
+                    "index": color_idx,
+                    "rgb": self.available_colors[color_idx],
+                    "message": f"Changing to color {color_idx} - RGB{self.available_colors[color_idx]}"
+                })
+                current_color = color_idx
+            # Move to start point with spray off
+            first_point = path[0]
+            instructions.append({
+                "type": "move",
+                "x": first_point[0],
+                "y": first_point[1],
+                "spray": False,
+                "message": f"Moving to ({first_point[0]}, {first_point[1]})"
+            })
+            # Start spraying
+            instructions.append({
+                "type": "spray",
+                "state": True,
+                "message": "Starting to spray"
+            })
+            # Follow path
+            for point in path[1:]:
+                instructions.append({
+                    "type": "move",
+                    "x": point[0],
+                    "y": point[1],
+                    "spray": True,
+                    "message": f"Moving to ({point[0]}, {point[1]}) while spraying"
+                })
+            # Stop spraying
+            instructions.append({
+                "type": "spray",
+                "state": False,
+                "message": "Stopping spray"
+            })
+        instructions.append({
+            "type": "home",
+            "message": "Returning to home position"
+        })
+        return instructions
+
         return instructions, quantized_image
 
 # Example usage

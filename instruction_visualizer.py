@@ -323,65 +323,51 @@ class MuralVisualizer:
             # Prepare frame buffer
             self.frame_buffer = []
             
-            # Process instructions and create frames
+            # Process instructions sequentially and create frames
             print("Generating animation frames...")
             frame_count = 0
-            
-            # Process instructions in chunks
-            from concurrent.futures import ThreadPoolExecutor, as_completed
-            
-            def process_chunk(chunk, canvas_snapshot, current_pos, spray_active, current_color):
-                canvas_local = canvas_snapshot.copy()
-                pos = current_pos
-                spray = spray_active
-                color = current_color
-            
-                for instruction in chunk:
-                    instruction_type = instruction.get('type')
-            
-                    if instruction_type == 'color':
-                        rgb = instruction.get('rgb', [0, 0, 0])
-                        color = tuple(int(round(c)) for c in rgb)
-            
-                    elif instruction_type == 'move':
-                        x = int(instruction.get('x', 0) * self.resolution_scale)
-                        y = int(instruction.get('y', 0) * self.resolution_scale)
-                        spray_flag = instruction.get('spray', False)
-            
-                        if spray_flag and spray:
-                            cv2.line(canvas_local,
-                                     (int(pos[0]), int(pos[1])),
-                                     (x, y),
-                                     color,
-                                     thickness=max(1, int(3 * self.resolution_scale)))
-            
-                        pos = (x, y)
-            
-                    elif instruction_type == 'spray':
-                        spray = instruction.get('state', False)
-            
-                    elif instruction_type == 'load_colors':
-                        pass  # skip
-            
-                frame = canvas_local.copy()
-                self._draw_robot_on_frame(frame, pos, spray, color)
-                return frame
-            
-            chunks = []
-            for i in range(0, len(instructions), instructions_per_frame):
-                chunk = instructions[i:i + instructions_per_frame]
-                chunks.append(chunk)
-            
-            with ThreadPoolExecutor() as executor:
-                futures = []
-                for chunk in chunks:
-                    # Pass a snapshot of the canvas for each chunk
-                    futures.append(executor.submit(process_chunk, chunk, canvas.copy(), current_pos, spray_active, current_color))
-            
-                for idx, future in enumerate(tqdm(as_completed(futures), total=len(futures), desc="Generating animation frames (parallel)")):
-                    frame = future.result()
+            pos = current_pos
+            spray = spray_active
+            color = current_color
+
+            for idx, instruction in enumerate(tqdm(instructions, desc="Generating animation frames")):
+                instruction_type = instruction.get('type')
+
+                if instruction_type == 'color':
+                    rgb = instruction.get('rgb', [0, 0, 0])
+                    color = tuple(int(round(c)) for c in rgb)
+
+                elif instruction_type == 'move':
+                    x = int(instruction.get('x', 0) * self.resolution_scale)
+                    y = int(instruction.get('y', 0) * self.resolution_scale)
+                    spray_flag = instruction.get('spray', False)
+
+                    if spray_flag and spray:
+                        cv2.line(canvas,
+                                 (int(pos[0]), int(pos[1])),
+                                 (x, y),
+                                 color,
+                                 thickness=max(1, int(3 * self.resolution_scale)))
+
+                    pos = (x, y)
+
+                elif instruction_type == 'spray':
+                    spray = instruction.get('state', False)
+
+                elif instruction_type == 'load_colors':
+                    pass  # skip
+
+                # Save frame every instructions_per_frame steps
+                if idx % instructions_per_frame == 0:
+                    frame = canvas.copy()
+                    self._draw_robot_on_frame(frame, pos, spray, color)
                     self.frame_buffer.append(frame)
-            
+
+            # Save final frame
+            frame = canvas.copy()
+            self._draw_robot_on_frame(frame, pos, spray, color)
+            self.frame_buffer.append(frame)
+
             print("\nGenerated", len(self.frame_buffer), "animation frames")
             
             # Save as video if requested
@@ -476,7 +462,7 @@ class MuralVisualizer:
             
         try:
             # Create figure
-            fig, ax = plt.subplots(figsize=(12, 8))
+            fig, ax = plt.subplots(figsize=(12, 8), constrained_layout=True)
             
             # Initialize with first frame
             img_plot = ax.imshow(cv2.cvtColor(self.frame_buffer[0], cv2.COLOR_BGR2RGB))
@@ -514,7 +500,7 @@ class MuralVisualizer:
             ax.set_yticks([])
             
             # Show the interactive plot
-            plt.tight_layout()
+            # plt.tight_layout()  # Removed because constrained_layout=True handles layout
             plt.show()
             
             return True
@@ -570,6 +556,8 @@ class MuralVisualizer:
                 if rgb:
                     # Convert to BGR for OpenCV
                     current_color = (rgb[2], rgb[1], rgb[0])
+                # Reset previous position to avoid connecting lines across color changes
+                self.prev_pos = None
             
             elif instr_type == 'spray':
                 # Update spray state
