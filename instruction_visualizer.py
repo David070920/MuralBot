@@ -1,3 +1,4 @@
+# filepath: c:\MuralBot\MuralBot\instruction_visualizer.py
 import cv2
 import numpy as np
 import json
@@ -8,6 +9,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Circle
+import random  # For randomized paint effects
 
 class MuralVisualizer:
     """
@@ -27,6 +29,10 @@ class MuralVisualizer:
         Args:
             config_path: Path to the configuration file
         """
+        # Default visualization parameters - ENHANCED for better coverage
+        self.spray_coverage = 2.0  # Increased coverage multiplier (was 1.5)
+        self.spray_overlap = 0.75   # Higher overlap factor between strokes (was 0.7)
+        
         # Load configuration
         self.load_config(config_path)
         
@@ -36,6 +42,7 @@ class MuralVisualizer:
         self.loaded_colors = []
         self.current_color_index = None
         self.robot_pos = None
+        self.save_animation = False
         
     def load_config(self, config_path):
         """Load configuration from JSON file."""
@@ -50,6 +57,10 @@ class MuralVisualizer:
             self.video_duration = vis_config.get('video_duration', 60)
             self.resolution_scale = vis_config.get('resolution_scale', 0.5)
             self.video_quality = vis_config.get('video_quality', 80)
+            
+            # Enhanced parameters - Use config if specified, otherwise use enhanced defaults
+            self.spray_coverage = vis_config.get('spray_coverage', 2.0)  # Increased default coverage
+            self.spray_overlap = vis_config.get('spray_overlap', 0.75)   # Increased default overlap
             
             # Load wall/canvas dimensions
             img_config = config.get('image_processing', {})
@@ -70,6 +81,124 @@ class MuralVisualizer:
             self.video_quality = 80
             self.wall_width = 2000
             self.wall_height = 1500
+
+    def _apply_paint_effect(self, canvas, position, color, intensity=1.0, spray_size=None):
+        """
+        Apply a realistic paint spray effect with enhanced coverage.
+        
+        Args:
+            canvas: The canvas to paint on
+            position: (x,y) position of the spray
+            color: RGB color tuple of the paint
+            intensity: Strength of the spray effect (0.0 to 1.0)
+            spray_size: Optional size override for the spray
+        """
+        x, y = position
+        
+        # ENHANCED: Much larger default spray size for better coverage
+        if spray_size is None:
+            spray_size = max(15, int(40 * self.resolution_scale * self.spray_coverage))
+        
+        # Create a mask for the spray pattern
+        mask = np.zeros((spray_size*2+1, spray_size*2+1), dtype=np.float32)
+        
+        # Create a circular gradient with improved coverage
+        center = (spray_size, spray_size)
+        for i in range(mask.shape[0]):
+            for j in range(mask.shape[1]):
+                # Calculate distance from center
+                distance = np.sqrt((i-center[0])**2 + (j-center[1])**2)
+                # ENHANCED: Apply improved radial falloff with better edge coverage
+                if distance < spray_size:
+                    # Use a gentler falloff curve (power of 1.5 instead of linear)
+                    value = max(0, 1.0 - (distance/spray_size)**1.5) * intensity
+                    # Less randomness for more consistent coverage
+                    value *= (0.7 + random.random() * 0.3)
+                    mask[i, j] = value
+        
+        # Apply the spray to the canvas
+        # Calculate boundaries
+        y_start = max(0, y-spray_size)
+        y_end = min(canvas.shape[0], y+spray_size+1)
+        x_start = max(0, x-spray_size)
+        x_end = min(canvas.shape[1], x+spray_size+1)
+        
+        # Check if we have valid coordinates - added a safety check
+        if y_end <= y_start or x_end <= x_start:
+            return
+        
+        # Calculate corresponding mask coordinates
+        mask_y_start = max(0, -(y-spray_size))
+        mask_y_end = mask.shape[0] - max(0, (y+spray_size+1) - canvas.shape[0])
+        mask_x_start = max(0, -(x-spray_size))
+        mask_x_end = mask.shape[1] - max(0, (x+spray_size+1) - canvas.shape[1])
+        
+        # Additional check for valid mask size
+        if mask_y_end <= mask_y_start or mask_x_end <= mask_x_start:
+            return
+        
+        try:
+            # Extract the region to modify
+            roi = canvas[y_start:y_end, x_start:x_end].copy()
+            
+            # Apply paint to each channel with alpha blending based on mask
+            # Scale mask for this application
+            application_mask = mask[mask_y_start:mask_y_end, mask_x_start:mask_x_end]
+            # Reshape for broadcasting
+            application_mask = application_mask.reshape(application_mask.shape[0], application_mask.shape[1], 1)
+            # Blend paint color with existing canvas
+            roi = roi * (1 - application_mask) + np.array(color).reshape(1, 1, 3) * application_mask
+            
+            # Update the canvas region
+            canvas[y_start:y_end, x_start:x_end] = roi.astype(np.uint8)
+        except Exception as e:
+            print(f"Error applying paint effect: {e}")
+
+    def _apply_paint_along_path(self, canvas, start_pos, end_pos, color, base_intensity=0.9):
+        """
+        Apply paint along a path between two points with enhanced coverage.
+        
+        Args:
+            canvas: The canvas to paint on
+            start_pos: (x,y) starting position
+            end_pos: (x,y) ending position
+            color: RGB color tuple of the paint
+            base_intensity: Base intensity for the paint effect
+        """
+        # Extract coordinates
+        x1, y1 = start_pos
+        x2, y2 = end_pos
+        
+        # Calculate distance
+        distance = np.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        
+        # ENHANCED: Use more interpolation points for better coverage
+        # Lower density_factor means more points
+        density_factor = 0.5  # More dense = better coverage
+        steps = max(5, int(distance * density_factor))
+        
+        # Apply paint at multiple points along the path
+        for i in range(steps + 1):
+            # Calculate position along path
+            t = i / steps
+            x = int(x1 + (x2 - x1) * t)
+            y = int(y1 + (y2 - y1) * t)
+            
+            # ENHANCED: Vary intensity slightly for natural look
+            intensity = base_intensity * (0.8 + random.random() * 0.4)
+            
+            # ENHANCED: Apply with enhanced spray size
+            spray_size = max(15, int(35 * self.resolution_scale * self.spray_coverage * (0.9 + random.random() * 0.2)))
+            self._apply_paint_effect(canvas, (x, y), color, intensity, spray_size)
+        
+        # ENHANCED: Add extra paint at the endpoints for better coverage
+        self._apply_paint_effect(
+            canvas, 
+            end_pos, 
+            color, 
+            intensity=base_intensity * 1.2,
+            spray_size=max(15, int(40 * self.resolution_scale * self.spray_coverage))
+        )
 
     def create_preview_image(self, instructions_file):
         """
@@ -111,7 +240,7 @@ class MuralVisualizer:
             current_pos = (0, 0)
             
             # Process each instruction
-            print("Generating preview image...")
+            print("Generating preview image with enhanced coverage...")
             for i, instruction in enumerate(tqdm(instructions)):
                 instruction_type = instruction.get('type')
                 
@@ -125,13 +254,14 @@ class MuralVisualizer:
                     spray = instruction.get('spray', False)
                     
                     if spray and spray_active:
-                        # Draw a line of the current color
-                        cv2.line(canvas, 
-                                 (int(current_pos[0]), int(current_pos[1])),
-                                 (x, y),
-                                 current_color,
-                                 thickness=max(1, int(3 * self.resolution_scale)))
-                        
+                        # ENHANCED: Use the improved path painting for better coverage
+                        self._apply_paint_along_path(
+                            canvas,
+                            (int(current_pos[0]), int(current_pos[1])),
+                            (x, y),
+                            current_color
+                        )
+                    
                     # Update position
                     current_pos = (x, y)
                     
@@ -150,7 +280,7 @@ class MuralVisualizer:
         except Exception as e:
             print(f"Error creating preview image: {e}")
             return None
-            
+
     def visualize_robot_paths(self, instructions_file):
         """
         Create a visualization of the robot's movement paths.
@@ -324,7 +454,7 @@ class MuralVisualizer:
             self.frame_buffer = []
             
             # Process instructions sequentially and create frames
-            print("Generating animation frames...")
+            print("Generating animation frames with enhanced coverage...")
             frame_count = 0
             pos = current_pos
             spray = spray_active
@@ -343,11 +473,13 @@ class MuralVisualizer:
                     spray_flag = instruction.get('spray', False)
 
                     if spray_flag and spray:
-                        cv2.line(canvas,
-                                 (int(pos[0]), int(pos[1])),
-                                 (x, y),
-                                 color,
-                                 thickness=max(1, int(3 * self.resolution_scale)))
+                        # ENHANCED: Use the improved path painting for better coverage
+                        self._apply_paint_along_path(
+                            canvas,
+                            pos,
+                            (x, y),
+                            color
+                        )
 
                     pos = (x, y)
 
@@ -400,11 +532,32 @@ class MuralVisualizer:
         
         # Draw spray indicator if active
         if spray_active:
-            spray_radius = int(robot_radius * 1.5)
-            # Create a slightly transparent overlay
+            # Draw spray direction cone
+            spray_length = robot_radius * 3
+            spray_width = robot_radius * 1.5
+            
+            # Create a slightly transparent overlay for spray cone
             overlay = frame.copy()
-            cv2.circle(overlay, (x, y), spray_radius, color, -1)
-            cv2.addWeighted(overlay, 0.3, frame, 0.7, 0, frame)
+            
+            # Draw a spray cone using a triangle
+            pt1 = (x, y)
+            pt2 = (x - spray_width, y + spray_length)
+            pt3 = (x + spray_width, y + spray_length)
+            spray_pts = np.array([pt1, pt2, pt3], np.int32).reshape((-1, 1, 2))
+            
+            # Fill with color
+            cv2.fillPoly(overlay, [spray_pts], color)
+            # Add some spray particles
+            for _ in range(10):
+                # Random position within spray cone
+                rx = x + random.randint(-int(spray_width*0.8), int(spray_width*0.8))
+                ry = y + random.randint(0, int(spray_length*0.8))
+                # Random size
+                r_size = random.randint(1, 3)
+                cv2.circle(overlay, (rx, ry), r_size, color, -1)
+            
+            # Apply overlay with transparency
+            cv2.addWeighted(overlay, 0.4, frame, 0.6, 0, frame)
             
             # Draw spray direction indicator
             indicator_length = robot_radius * 2
@@ -500,7 +653,6 @@ class MuralVisualizer:
             ax.set_yticks([])
             
             # Show the interactive plot
-            # plt.tight_layout()  # Removed because constrained_layout=True handles layout
             plt.show()
             
             return True
@@ -540,11 +692,11 @@ class MuralVisualizer:
         
         # For animation
         frames = []
-        save_frames = self.save_animation
+        save_frames = getattr(self, 'save_animation', False)
         
         # For progress tracking
         if show_progress:
-            progress_bar = tqdm(total=len(instructions), desc="Visualizing")
+            progress_bar = tqdm(total=len(instructions), desc="Visualizing with enhanced coverage")
         
         # Process each instruction
         for idx, instruction in enumerate(instructions):
@@ -575,12 +727,18 @@ class MuralVisualizer:
                 
                 # Draw if spraying
                 if spray and spray_on:
-                    # Draw a line from the previous position
-                    if hasattr(self, 'prev_pos'):
-                        cv2.line(canvas, self.prev_pos, (x_pixel, y_pixel), current_color, 2)
+                    # ENHANCED: Use improved paint path for better coverage
+                    if hasattr(self, 'prev_pos') and self.prev_pos:
+                        # Apply enhanced paint along the path
+                        self._apply_paint_along_path(
+                            canvas,
+                            self.prev_pos,
+                            (x_pixel, y_pixel),
+                            current_color[::-1]  # BGR to RGB
+                        )
                     else:
-                        # If first point, draw a circle
-                        cv2.circle(canvas, (x_pixel, y_pixel), 1, current_color, -1)
+                        # If first point, just add paint at that location
+                        self._apply_paint_effect(canvas, (x_pixel, y_pixel), current_color[::-1])
                 
                 # Update previous position
                 self.prev_pos = (x_pixel, y_pixel)
@@ -617,7 +775,12 @@ class MuralVisualizer:
         # Save the animation if enabled
         if save_frames and frames:
             animation_file = os.path.join(painting_folder, "mural_animation.mp4")
-            self._save_animation(frames, animation_file, fps=30)
+            height, width = frames[0].shape[:2]
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(animation_file, fourcc, 15, (width, height))
+            for frame in frames:
+                out.write(frame)
+            out.release()
             print(f"Animation saved to {animation_file}")
         
         # Show the final result

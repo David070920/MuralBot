@@ -14,7 +14,7 @@ from config_manager import ConfigManager
 from console_app import ConsoleApp
 from gui_app import GUIApp
 from image_to_instructions import MuralInstructionGenerator
-from instruction_visualizer import MuralVisualizer
+from instruction_visualizer_optimized import MuralVisualizer
 
 def main():
     """Main entry point for the application."""

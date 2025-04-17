@@ -13,7 +13,7 @@ import time
 from config_manager import ConfigManager
 from image_to_instructions import MuralInstructionGenerator
 from robot_controller import MuralRobotController
-from instruction_visualizer import MuralVisualizer
+from instruction_visualizer_optimized import MuralVisualizer
 
 class ConsoleApp:
     """
